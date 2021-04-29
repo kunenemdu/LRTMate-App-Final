@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name" translatable="false">LRTMate</string>
+    <string name="bottom_sheet_behavior" translatable="false">android.support.design.widget.BottomSheetBehavior</string>
+
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">
+        AIzaSyAYWL_z-TJOBptGAzkXbVB2ZE_NhP27Yx4
+    </string>
+    <string name="places_key" templateMergeStrategy="preserve" translatable="false">
+        AIzaSyAYWL_z-TJOBptGAzkXbVB2ZE_NhP27Yx4
+    </string>
+    <string name="title_activity_navigation">MainActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="Open">OPEN</string>
+    <string name="Close">CLOSE</string>
+    <string name="package_name" translatable="true">com.example.fypmetroapp</string>
+    <string name="msg_token_fmt"></string>
+    <string name="wheelchair">Indicates Stations with Wheelchair Access</string>
+    <string name="bus_lines">Indicates A Bus Line at a Station (e.g. Bus 153)</string>
+    <string name="parking_text">Indicates Stations with Parking</string>
+    <string name="lrt_text">Indicates Light Rail Stations</string>
+    <string name="bus_stations_text">Indicates Bus Stations</string>
+    <string name="show_drawer">show drawer</string>
+</resources>

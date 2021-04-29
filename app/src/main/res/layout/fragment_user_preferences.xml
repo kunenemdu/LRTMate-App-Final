@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:layout_marginTop="?actionBarSize"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".UserPreferencesFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/main_blue"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout3">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="10sp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Preferences"
+                android:textColor="@color/yellow_700"
+                android:textSize="20dp"
+                android:layout_gravity="center"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="30sp"
+                android:layout_marginVertical="5sp"
+                android:background="@color/white"
+                android:layout_gravity="center"
+                android:layout_height="1sp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginVertical="5sp"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:text="I have some sort of physical limitation:"/>
+
+            <Spinner
+                android:id="@+id/disabled_spinner"
+                style="@style/white_spinner"
+                android:layout_marginVertical="5sp"
+                android:layout_width="wrap_content"
+                android:dropDownWidth="match_parent"
+                android:layout_height="wrap_content" />
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:layout_marginVertical="5sp"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:text="My preferred mode of transport:"/>
+
+            <Spinner
+                android:id="@+id/preferred_spinner"
+                android:layout_marginVertical="5sp"
+                android:layout_width="wrap_content"
+                android:dropDownWidth="wrap_content"
+                style="@style/white_spinner"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:layout_marginVertical="5sp"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:text="How often I use them:"/>
+
+            <Spinner
+                android:id="@+id/frequency_spinner"
+                android:layout_marginVertical="5sp"
+                android:layout_width="wrap_content"
+                android:dropDownWidth="wrap_content"
+                style="@style/white_spinner"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginVertical="5dp"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:text="My attitude towards delays in my trip:"/>
+
+            <Spinner
+                android:id="@+id/tolerance_spinner"
+                android:layout_width="wrap_content"
+                style="@style/white_spinner"
+                android:dropDownWidth="wrap_content"
+                android:layout_marginVertical="5sp"
+                android:layout_height="wrap_content" />
+
+            </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginVertical="5dp"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:text="My lifestyle in one word:"/>
+
+            <Spinner
+                android:id="@+id/lifestyle_spinner"
+                android:layout_width="wrap_content"
+                style="@style/white_spinner"
+                android:dropDownWidth="wrap_content"
+                android:layout_marginVertical="10sp"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_marginVertical="10sp"
+            android:layout_height="wrap_content">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="wrap_content"
+                app:cardCornerRadius="15sp"
+                android:layout_height="wrap_content">
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:text="CONFIRM"
+                    android:id="@+id/savePrefs"
+                    android:textColor="@color/main_blue"
+                    android:background="@color/transparent"
+                    android:layout_height="wrap_content"/>
+
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

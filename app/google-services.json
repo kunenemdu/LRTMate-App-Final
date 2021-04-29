@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "432875055492",
+    "project_id": "metro-map-299810",
+    "storage_bucket": "metro-map-299810.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:432875055492:android:f7095cc7687b7b03fbd5d1",
+        "android_client_info": {
+          "package_name": "com.example.fypmetroapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "432875055492-aqjn4aul8b7aehfn1ra62fc2g6ijc4gp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABfOe-bINSQq93YtGVwVC94eT_zACb5vI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "432875055492-aqjn4aul8b7aehfn1ra62fc2g6ijc4gp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

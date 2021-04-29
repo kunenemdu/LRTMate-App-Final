@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ToRoseHillFragment"
+    android:layout_marginTop="20dp">
+
+    <LinearLayout
+        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:weightSum="10"
+        android:padding="10dp">
+
+        <TextView android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:textSize="17dp"
+            android:text="Line"
+            android:layout_weight="5"
+            android:layout_column="1"
+            android:textColor="@color/black"/>
+
+        <TextView android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="ETA"
+            android:textColor="@color/black"
+            android:textSize="17dp"
+            android:layout_weight="5"
+            android:layout_column="2"/>
+    </LinearLayout>
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:id="@+id/scheTable_RH"
+        android:layout_marginTop="40dp">
+
+
+    </TableLayout>
+
+</FrameLayout>

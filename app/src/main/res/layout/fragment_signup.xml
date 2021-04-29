@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".SignupFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/main_blue"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout3">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="40dp"
+                android:layout_width="40dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="25dp"
+                app:cardElevation="3dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/clipart37839"
+                    android:layout_gravity="center"
+                    app:tint="@color/yellow_700" />
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="35dp"
+                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                app:cardBackgroundColor="@color/grey_20"
+                android:backgroundTint="@color/white"
+                android:layout_marginLeft="-20dp">
+
+                <EditText
+                    android:layout_width="150dp"
+                    android:layout_height="52dp"
+                    android:inputType="text"
+                    android:id="@+id/txtName"
+                    android:hint="Full Name"
+                    android:textSize="12dp"
+                    android:background="@color/white"
+                    android:textColor="@color/yellow_700"
+                    android:layout_marginLeft="15dp"
+                    android:layout_gravity="center"/>
+
+            </androidx.cardview.widget.CardView>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="40dp"
+                android:layout_width="40dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="25dp"
+                app:cardElevation="3dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_phone_"
+                    android:layout_gravity="center"
+                    app:tint="@color/yellow_700" />
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="35dp"
+                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginLeft="-20dp">
+
+                <EditText
+                    android:layout_width="150dp"
+                    android:layout_height="52dp"
+                    android:inputType="textPhonetic"
+                    android:hint="Email Address"
+                    android:id="@+id/txtEmail"
+                    android:textSize="12dp"
+                    android:textColor="@color/yellow_700"
+                    android:layout_marginLeft="13dp"
+                    android:layout_gravity="center"/>
+
+            </androidx.cardview.widget.CardView>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="40dp"
+                android:layout_width="40dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="25dp"
+                app:cardElevation="3dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_outline_lock_24"
+                    android:layout_gravity="center"
+                    app:tint="@color/yellow_700" />
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="35dp"
+                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginLeft="-20dp">
+
+                <EditText
+                    android:layout_width="150dp"
+                    android:layout_height="52dp"
+                    android:inputType="textPassword"
+                    android:hint="Password"
+                    android:textSize="12dp"
+                    android:id="@+id/txtPass"
+                    android:textColor="@color/yellow_700"
+                    android:layout_marginLeft="10dp"
+                    android:padding="8dp"
+                    android:layout_gravity="center"/>
+
+            </androidx.cardview.widget.CardView>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="40dp"
+                android:layout_width="40dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="25dp"
+                app:cardElevation="3dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_outline_lock_24"
+                    android:layout_gravity="center"
+                    app:tint="@color/yellow_700" />
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_height="35dp"
+                android:backgroundTint="@color/white"
+                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                app:cardBackgroundColor="@color/grey_20"
+                android:layout_marginLeft="-20dp">
+
+                <EditText
+                    android:layout_width="150dp"
+                    android:layout_height="52dp"
+                    android:inputType="textPassword"
+                    android:hint="Confirm Password"
+                    android:textSize="12dp"
+                    android:id="@+id/txtConfirm"
+                    android:background="@color/white"
+                    android:textColor="@color/black"
+                    android:layout_marginLeft="10dp"
+                    android:padding="8dp"
+                    android:layout_gravity="center"/>
+
+            </androidx.cardview.widget.CardView>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="25dp"
+                app:cardElevation="3dp">
+
+                <ImageButton
+                    android:id="@+id/doRegister"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/transparent"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_baseline_arrow_forward_24"
+                    app:tint="@color/main_blue" />
+
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

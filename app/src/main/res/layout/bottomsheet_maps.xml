@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/bottomsheet_map"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    app:behavior_peekHeight="70dp"
+    app:layout_behavior="com.example.fypmetroapp.AnchorSheetBehavior">
+
+    <RelativeLayout
+        android:id="@+id/tap_action_layout"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:background="@color/quantum_bluegrey300"
+        android:paddingTop="8dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/bottom_sheet_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Title dummy"
+                android:textColor="@android:color/white"
+                android:textSize="19sp"/>
+
+            <TextView
+                android:id="@+id/text_dummy1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Text dummy 1234 1234"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:layout_marginTop="5dp"/>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="12dp">
+
+                <RelativeLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent">
+
+                    <ImageButton
+                        android:id="@+id/button1"
+                        android:layout_width="70dp"
+                        android:layout_height="60dp"
+                        android:src="@android:drawable/ic_dialog_map"
+                        android:layout_centerHorizontal="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BUTTON 1"
+                        android:textColor="@android:color/black"
+                        android:layout_alignParentBottom="true"/>
+                </RelativeLayout>
+
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="20dp"
+                    android:layout_marginStart="20dp">
+
+                    <ImageButton
+                        android:id="@+id/button2"
+                        android:layout_width="70dp"
+                        android:layout_height="60dp"
+                        android:src="@android:drawable/ic_dialog_info"
+                        android:layout_centerHorizontal="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BUTTON 2"
+                        android:textColor="@android:color/black"/>
+                </LinearLayout>
+
+                <RelativeLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent">
+
+                    <ImageButton
+                        android:id="@+id/establecimiento_share_button"
+                        android:layout_width="70dp"
+                        android:layout_height="60dp"
+                        android:src="@android:drawable/ic_menu_share"
+                        android:layout_centerHorizontal="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BUTTON 3"
+                        android:textColor="@android:color/black"
+                        android:layout_alignParentBottom="true"/>
+                </RelativeLayout>
+            </LinearLayout>
+
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp">
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Text dummy 1"
+                        android:layout_gravity="center_vertical"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/black"/>
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Text dummy 2"
+                        android:layout_gravity="center_vertical"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/black"/>
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Text dummy 3"
+                        android:layout_gravity="center_vertical"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/black"/>
+
+                </LinearLayout>
+
+            </RelativeLayout>
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="APACHE LICENSE"
+                    android:layout_gravity="center_vertical"
+                    android:textSize="18sp"
+                    android:textColor="@android:color/darker_gray"/>
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+
+                android:text="options 1"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"/>
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="620dp"
+                android:background="@color/white"
+                android:layout_marginTop="40dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="Your remaining content here"
+                    android:textColor="@android:color/white" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

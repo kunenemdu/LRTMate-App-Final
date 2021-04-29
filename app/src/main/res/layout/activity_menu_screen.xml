@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MenuScreenActivity"
+    android:padding="5dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/constraintLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:padding="35dp"
+            android:scaleX="1.5"
+            android:scaleY="1.5"
+            android:src="@mipmap/ic_main_logo_foreground"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+        app:layout_constraintBottom_toTopOf="@+id/constraintLayout2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/stationsCard"
+            android:layout_width="114dp"
+            android:layout_height="114dp"
+            android:background="@color/black"
+            app:cardElevation="1.5dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/relImg"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#ecf0f1"
+                android:paddingTop="21dp"
+                android:paddingBottom="25dp">
+
+                <ImageView
+                    android:id="@+id/imgIcon"
+                    android:layout_width="43dp"
+                    android:layout_height="43dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_location"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/txtCardText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/imgIcon"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:text="Stations"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/imgIcon"
+                    app:layout_constraintStart_toStartOf="@+id/imgIcon"
+                    app:layout_constraintTop_toBottomOf="@+id/imgIcon" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/routeCard"
+            android:layout_width="114dp"
+            android:layout_height="114dp"
+            android:background="@color/black"
+            app:cardElevation="1.5dp"
+            app:layout_constraintEnd_toStartOf="@+id/poiCard"
+            app:layout_constraintStart_toEndOf="@+id/stationsCard"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#ecf0f1"
+                android:paddingTop="21dp"
+                android:paddingBottom="25dp">
+
+                <ImageView
+                    android:id="@+id/routeIcon"
+                    android:layout_width="43dp"
+                    android:layout_height="43dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_route"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/routeIcon"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:text="Route Line"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/routeIcon"
+                    app:layout_constraintStart_toStartOf="@+id/routeIcon"
+                    app:layout_constraintTop_toBottomOf="@+id/routeIcon" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/poiCard"
+            android:layout_width="114dp"
+            android:layout_height="114dp"
+            android:background="@color/black"
+            app:cardElevation="1.5dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#ecf0f1"
+                android:paddingTop="21dp"
+                android:paddingBottom="25dp">
+
+                <ImageView
+                    android:id="@+id/poiIcon"
+                    android:layout_width="43dp"
+                    android:layout_height="43dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_poi_icon_yellow"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/poiIcon"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:text="POI"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/poiIcon"
+                    app:layout_constraintStart_toStartOf="@+id/poiIcon"
+                    app:layout_constraintTop_toBottomOf="@+id/poiIcon" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:layout_marginTop="13dp"
+            android:background="#ffffff"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/scheCard" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/ticketCard"
+            android:layout_width="114dp"
+            android:layout_height="114dp"
+            android:layout_marginTop="15dp"
+            android:background="@color/black"
+            app:cardElevation="1.5dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/stationsCard">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/white"
+                android:paddingTop="21dp"
+                android:paddingBottom="25dp">
+
+                <ImageView
+                    android:id="@+id/ticketIcon"
+                    android:layout_width="43dp"
+                    android:layout_height="43dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_ticket"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/ticketIcon"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="10dp"
+                    android:shadowColor="#ecf0f1"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:text="Tickets"
+                    android:textAlignment="center"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/ticketIcon"
+                    app:layout_constraintStart_toStartOf="@+id/ticketIcon"
+                    app:layout_constraintTop_toBottomOf="@+id/ticketIcon" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/scheCard"
+            android:layout_width="114dp"
+            android:layout_height="114dp"
+            android:layout_marginTop="15dp"
+            android:background="@color/black"
+            app:cardElevation="1.5dp"
+            app:layout_constraintEnd_toStartOf="@+id/directionCard"
+            app:layout_constraintStart_toEndOf="@+id/ticketCard"
+            app:layout_constraintTop_toBottomOf="@+id/routeCard">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/white"
+                android:paddingTop="21dp"
+                android:paddingBottom="25dp">
+
+                <ImageView
+                    android:id="@+id/scheIcon"
+                    android:layout_width="43dp"
+                    android:layout_height="43dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_schedule"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/scheIcon"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="10dp"
+                    android:shadowColor="#ecf0f1"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:text="LRV Schedule"
+                    android:textAlignment="center"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/scheIcon"
+                    app:layout_constraintStart_toStartOf="@+id/scheIcon"
+                    app:layout_constraintTop_toBottomOf="@+id/scheIcon" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/directionCard"
+            android:layout_width="114dp"
+            android:layout_height="114dp"
+            android:layout_marginTop="15dp"
+            android:background="@color/black"
+            app:cardElevation="1.5dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/poiCard">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#ecf0f1"
+                android:paddingTop="21dp"
+                android:paddingBottom="25dp">
+
+                <ImageView
+                    android:id="@+id/directIcon"
+                    android:layout_width="43dp"
+                    android:layout_height="43dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@mipmap/route_icon"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/directIcon"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:text="Directions"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/directIcon"
+                    app:layout_constraintStart_toStartOf="@+id/directIcon"
+                    app:layout_constraintTop_toBottomOf="@+id/directIcon" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Developed By Kunene M."
+            android:textAlignment="center"
+            android:textSize="8sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="disabled">
+        <item>True</item>
+        <item>False</item>
+    </string-array>
+    <string-array name="lifestyle">
+        <item>Very Active</item>
+        <item>Somewhat Active</item>
+        <item>Housecat</item>
+    </string-array>
+    <string-array name="purpose">
+        <item>Work</item>
+        <item>Education</item>
+        <item>Errands or Shopping</item>
+    </string-array>
+    <string-array name="delay_tolerance">
+        <item>Tolerable</item>
+        <item>Neutral</item>
+        <item>Unacceptable</item>
+    </string-array>
+    <string-array name="frequency">
+        <item>Daily</item>
+        <item>Rarely</item>
+        <item>Sometimes</item>
+    </string-array>
+    <string-array name="preferred_vehicle">
+        <item>Private</item>
+        <item>Public</item>
+        <item>Bicycle</item>
+        <item>None</item>
+    </string-array>
+</resources>
