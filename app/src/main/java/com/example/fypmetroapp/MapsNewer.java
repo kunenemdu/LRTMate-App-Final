@@ -79,7 +79,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.PointOfInterest;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
@@ -190,9 +189,10 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     //Class Declarations
     Origin origin = new Origin();
     Destination destination = new Destination();
-    UserLocation userLocation = new UserLocation();
+    UserUpdates userUpdates = new UserUpdates();
     Fragment active;
     Dialog stationDetailsDialog;
+    GlobalProperties properties = new GlobalProperties();
 
     @Nullable
     @Override
@@ -219,37 +219,34 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
                     userGeoFire.setLocation("You", new GeoLocation(
                             locationResult.getLastLocation().getLatitude(),
-                            locationResult.getLastLocation().getLongitude()), new GeoFire.CompletionListener() {
-                        @Override
-                        public void onComplete(String key, DatabaseError error) {
+                            locationResult.getLastLocation().getLongitude()), (key, error) -> {
 
-                            if (userMarker != null) userMarker.remove();
+                                if (userMarker != null) userMarker.remove();
 
-                            userMarker = gMap.addMarker(new MarkerOptions()
-                                    .position(new LatLng(locationResult.getLastLocation().getLatitude(),
-                                            locationResult.getLastLocation().getLongitude()))
-                                    .title("You"));
-                            curLocation = userMarker.getPosition();
-                            userLocation.latLngLoc = userMarker.getPosition();
-                            ShowNearestStations();
-                            gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userMarker.getPosition(), 13.0f));
-                            initStationsFences();
+                                userMarker = gMap.addMarker(new MarkerOptions()
+                                        .position(new LatLng(locationResult.getLastLocation().getLatitude(),
+                                                locationResult.getLastLocation().getLongitude()))
+                                        .title("You"));
+                                curLocation = userMarker.getPosition();
+                                userUpdates.latLngLocation = userMarker.getPosition();
+                                ShowNearestStations();
+                                gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userMarker.getPosition(), 13.0f));
+                                initStationsFences();
 
-                            //area identifiers
-                            for (StationFence stationFence: getStationsFences()){
-                                gMap.addCircle(new CircleOptions().center(stationFence.stationLocation)
-                                        .radius(500)//metres
-                                        .strokeColor(Color.BLUE)
-                                        .fillColor(0x220000FF)
-                                        .strokeWidth(5.0f));
+                                //area identifiers
+                                for (StationFence stationFence: getStationsFences()){
+                                    gMap.addCircle(new CircleOptions().center(stationFence.stationLocation)
+                                            .radius(500)//metres
+                                            .strokeColor(Color.BLUE)
+                                            .fillColor(0x220000FF)
+                                            .strokeWidth(5.0f));
 
-                                //do this when user enters GeoFence
-                                GeoQuery query = userGeoFire.queryAtLocation(
-                                        new GeoLocation(stationFence.stationLocation.latitude, stationFence.stationLocation.longitude), 0.5f);
-                                query.addGeoQueryDataEventListener(MapsNewer.this);
-                            }
-                        }
-                    });
+                                    //do this when user enters GeoFence
+                                    GeoQuery query = userGeoFire.queryAtLocation(
+                                            new GeoLocation(stationFence.stationLocation.latitude, stationFence.stationLocation.longitude), 0.5f);
+                                    query.addGeoQueryDataEventListener(MapsNewer.this);
+                                }
+                            });
                 }
             }
         };
@@ -267,14 +264,14 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     public void onMapReady(GoogleMap googleMap) {
         //initialise map for use
         gMap = googleMap;
-        setgMap(gMap);
+        properties.setgMap(gMap);
 
         gMap = Tools.configActivityMaps(googleMap);
 
         //call location before doing anything with it
         enableMyLocation();
-        if (userLocation.location != null) {
-            String origin = String.valueOf(userLocation.location.getLatitude()) + "," + String.valueOf(userLocation.location.getLongitude());
+        if (userUpdates.location != null) {
+            String origin = String.valueOf(userUpdates.location.getLatitude()) + "," + String.valueOf(userUpdates.location.getLongitude());
 
         }
 
@@ -303,8 +300,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         }
 
         //initialise ImageView
-        locationButton = (ImageView) getView().findViewById(0x2);
-        searchButton = (ImageView) getView().findViewById(R.id.places_autocomplete_search_button);
+        locationButton = getView().findViewById(0x2);
+        searchButton = getView().findViewById(R.id.places_autocomplete_search_button);
 
         // Change the visibility of my location button
         if (locationButton != null)
@@ -315,98 +312,78 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             searchButton.setVisibility(View.GONE);
 
         //implement listener for ImageView
-        getView().findViewById(R.id.imMyLocation).setOnClickListener(new View.OnClickListener() {
-            @SuppressLint("NewApi")
-            @Override
-            public void onClick(View v) {
-                if (gMap != null) {
-                    if (locationButton != null)
-                        //clicking ImageView calls Google's location button which is hidden
-                        locationButton.callOnClick();
-                }
+        getView().findViewById(R.id.imMyLocation).setOnClickListener(v -> {
+            if (gMap != null) {
+                if (locationButton != null)
+                    //clicking ImageView calls Google's location button which is hidden
+                    locationButton.callOnClick();
             }
         });
 
         //implement listener for ImageView
-        getView().findViewById(R.id.searchIcon).setOnClickListener(new View.OnClickListener() {
-            @SuppressLint("NewApi")
-            @Override
-            public void onClick(View v) {
-                if (gMap != null) {
-                    if (searchButton != null)
-                        //clicking ImageView calls Google's search button which is hidden
-                        searchButton.callOnClick();
-                }
+        getView().findViewById(R.id.searchIcon).setOnClickListener(v -> {
+            if (gMap != null) {
+                if (searchButton != null)
+                    //clicking ImageView calls Google's search button which is hidden
+                    searchButton.callOnClick();
             }
         });
 
-        gMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
-            @Override
-            public boolean onMyLocationButtonClick() {
-                Toast.makeText(getContext(), "MyLocation button clicked", Toast.LENGTH_SHORT).show();
-                // Return false so that we don't consume the event and the default behavior still occurs
-                // (the camera animates to the user's current position).
-                gMap.moveCamera(CameraUpdateFactory.zoomTo(14.0f));
-                return false;
-            }
+        gMap.setOnMyLocationButtonClickListener(() -> {
+            Toast.makeText(getContext(), "MyLocation button clicked", Toast.LENGTH_SHORT).show();
+            // Return false so that we don't consume the event and the default behavior still occurs
+            // (the camera animates to the user's current position).
+            gMap.moveCamera(CameraUpdateFactory.zoomTo(14.0f));
+            return false;
         });
-        gMap.setOnMyLocationClickListener(new GoogleMap.OnMyLocationClickListener() {
-            @Override
-            public void onMyLocationClick(@NonNull Location location) {
-                Toast.makeText(getContext(), "Current location:\n" + location, Toast.LENGTH_LONG).show();
-                //setmLocation(location);
-            }
+        gMap.setOnMyLocationClickListener(location -> {
+            Toast.makeText(getContext(), "Current location:\n" + location, Toast.LENGTH_LONG).show();
+            //setmLocation(location);
         });
 
 
 
-        gMap.setOnPoiClickListener(new GoogleMap.OnPoiClickListener() {
-            @Override
-            public void onPoiClick(PointOfInterest pointOfInterest) {
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                //if place selected previously
-                if (poiMarker != null) {
-                    //if new place selected
-                    if (poiMarker.getPosition() != pointOfInterest.latLng) {
-                        //remove old place add new marker
-                        poiMarker.remove();
-                        poiMarker = gMap.addMarker(new MarkerOptions()
-                                //set marker position to place LatLng
-                                .position(pointOfInterest.latLng)
-                                //set marker name to selected place
-                                .title(pointOfInterest.name)
-                        );
-                    } else
-                        poiMarker = null;
-                }
-
-                //if place marker not set
-                if (poiMarker == null) {
-                    //add a marker on map
+        gMap.setOnPoiClickListener(pointOfInterest -> {
+            bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            //if place selected previously
+            if (poiMarker != null) {
+                //if new place selected
+                if (poiMarker.getPosition() != pointOfInterest.latLng) {
+                    //remove old place add new marker
+                    poiMarker.remove();
                     poiMarker = gMap.addMarker(new MarkerOptions()
                             //set marker position to place LatLng
                             .position(pointOfInterest.latLng)
-
                             //set marker name to selected place
                             .title(pointOfInterest.name)
                     );
-
-                }
-                titleText.setText(pointOfInterest.name);
-                textAddress.setText(pointOfInterest.latLng.toString());
+                } else
+                    poiMarker = null;
             }
+
+            //if place marker not set
+            if (poiMarker == null) {
+                //add a marker on map
+                poiMarker = gMap.addMarker(new MarkerOptions()
+                        //set marker position to place LatLng
+                        .position(pointOfInterest.latLng)
+
+                        //set marker name to selected place
+                        .title(pointOfInterest.name)
+                );
+
+            }
+            titleText.setText(pointOfInterest.name);
+            textAddress.setText(pointOfInterest.latLng.toString());
         });
 
 
-        gMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
-            @Override
-            public void onMapLoaded() {
+        gMap.setOnMapLoadedCallback(() -> {
 
-                //gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mauritius, 30));
+            //gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mauritius, 30));
 
-                gMap.setLatLngBoundsForCameraTarget(mauritius);
+            gMap.setLatLngBoundsForCameraTarget(mauritius);
 
-            }
         });
 
         LRT_Polyline();
@@ -474,8 +451,6 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         if (fusedLocationProviderClient != null) {
             fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
             ShowNearestStations();
-
-
         }
     }
 
@@ -596,14 +571,6 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     private void GeoFireConfig() {
         userRef = FirebaseDatabase.getInstance().getReference("lrtmateapp");
         userGeoFire = new GeoFire(userRef);
-    }
-
-    public GoogleMap getgMap() {
-        return gMap;
-    }
-
-    public void setgMap(GoogleMap gMap) {
-        this.gMap = gMap;
     }
 
     public ArrayList<Marker> getAllMarkers() {
@@ -1211,13 +1178,13 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         ArrayList<Station> nearbyStations = new ArrayList<>();
         allMarkers = new ArrayList<>();
         int distance = 0;
-        //TODO: CLOSE LRT STATIONS
+
         for (int i = 0; i < allLRTMarkers.size(); i++) {
             Marker LRTmarker = allLRTMarkers.get(i);
             allMarkers.add(LRTmarker);
-            if (userLocation.latLngLoc != null) {
+            if (userUpdates.latLngLocation != null) {
                 if (userMarker != null) {
-                    curLocation = userLocation.latLngLoc;
+                    curLocation = userUpdates.latLngLocation;
                     distance = (int) SphericalUtil.computeDistanceBetween(curLocation, LRTmarker.getPosition());
                 }
             }
@@ -1234,9 +1201,9 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             Marker BUSmarker = allBusMarkers.get(y);
 
             allMarkers.add(BUSmarker);
-            if (userLocation.latLngLoc != null) {
+            if (userUpdates.latLngLocation != null) {
                 if (userMarker != null) {
-                    curLocation = userLocation.latLngLoc;
+                    curLocation = userUpdates.latLngLocation;
                     distance = (int) SphericalUtil.computeDistanceBetween(curLocation, BUSmarker.getPosition());
                 }
             }
@@ -1347,8 +1314,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
         for (int y = 0; y < this_buses_stops.size(); y++) {
             Station station = this_buses_stops.get(y);
-            if (userLocation.location != null) {
-                curLocation = new LatLng(userLocation.location.getLatitude(), userLocation.location.getLongitude());
+            if (userUpdates.location != null) {
+                curLocation = new LatLng(userUpdates.location.getLatitude(), userUpdates.location.getLongitude());
                 distance = (int) SphericalUtil.computeDistanceBetween(curLocation, station.position);
             }
 
@@ -1564,7 +1531,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         requestQueue.add(stringRequest);
     }
 
-    public void Extract_BUS_Data(Marker marker) {
+    public void Extract_BUS_Data(@NotNull Marker marker) {
         String getScheduleURL = "https://metromobile.000webhostapp.com/bus_stationLookUp.php?statName=" + marker.getTitle();
         StringRequest stringRequest = new StringRequest(Request.Method.GET, getScheduleURL, new Response.Listener<String>() {
             @Override
@@ -1658,6 +1625,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             flexboxBuses.removeAllViews();
             flexboxFacilities.removeAllViews();
 
+            //show buses at station
             for (int i = 0; i < result.length(); i++) {
                 aTime = result.getJSONObject(i);
                 parking = aTime.getString(Config.BUS_PARKING);
@@ -1701,11 +1669,13 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                     Snackbar.LENGTH_SHORT)
                     .show();
 
+            //show parking availability at station
             if (parking.equals("1")) {
-                Log.e("there is", parking);
                 ImageView parkingView = new ImageView(flexboxFacilities.getContext());
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                params.setMargins(10, 10, 10, 10);
+                params.height = 120;
+                params.width = 120;
+                params.setMargins(10, 0, 10, 0);
                 parkingView.setBackground(getResources().getDrawable(R.drawable.station_facility));
                 parkingView.setImageDrawable(getResources().getDrawable(R.drawable.ic_parking));
                 parkingView.setLayoutParams(params);
@@ -1714,10 +1684,50 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                 flexboxFacilities.addView(parkingView);
             }
 
+            //show wheelchair access at station
+            if (disabled.equals("1")) {
+                ImageView disabled_view = new ImageView(flexboxFacilities.getContext());
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                params.height = 120;
+                params.width = 120;
+                params.setMargins(10, 0, 10, 0);
+                disabled_view.setBackground(getResources().getDrawable(R.drawable.station_facility));
+                disabled_view.setImageDrawable(getResources().getDrawable(R.drawable.ic_wheelchair));
+                disabled_view.setPadding(5, 5, 5, 5);
+                disabled_view.setLayoutParams(params);
+
+                // now add to the Table.
+                flexboxFacilities.addView(disabled_view);
+            }
+
+            //show bike rack availability at station
+            if (bike_rack.equals("1")) {
+                ImageView bike_rack_view = new ImageView(flexboxFacilities.getContext());
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                params.height = 120;
+                params.width = 120;
+                params.setMargins(10, 0, 10, 0);
+                bike_rack_view.setBackground(getResources().getDrawable(R.drawable.station_facility));
+                bike_rack_view.setImageDrawable(getResources().getDrawable(R.drawable.ic_bike_facility));
+                bike_rack_view.setPadding(5, 5, 5, 5);
+                bike_rack_view.setLayoutParams(params);
+
+                // now add to the Table.
+                flexboxFacilities.addView(bike_rack_view);
+            }
+
             if (parking.equals("0") && disabled.equals("0") && bike_rack.equals("0")){
-                Log.e("theres no", parking);
-                Log.e("theres no", disabled);
-                Log.e("theres no", bike_rack);
+                TextView no_facilities = new TextView(flexboxFacilities.getContext());
+                no_facilities.setText(R.string.no_facilities);
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                layoutParams.setMargins(10,10,10,10);
+                no_facilities.setTextColor(Color.BLACK);
+                no_facilities.setTextSize(20);
+                no_facilities.setGravity(Gravity.CENTER);
+                no_facilities.setLayoutParams(layoutParams);
+
+                // now add to the Table.
+                flexboxFacilities.addView(no_facilities);
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -1735,11 +1745,11 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                 LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
                 Criteria mCriteria = new Criteria();
                 String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
-                userLocation.setLocation(manager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER));
-                if (userLocation.location != null) {
+                userUpdates.setLocation(manager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER));
+                if (userUpdates.location != null) {
 
-                    final double currentLatitude = userLocation.location.getLatitude();
-                    final double currentLongitude = userLocation.location.getLongitude();
+                    final double currentLatitude = userUpdates.location.getLatitude();
+                    final double currentLongitude = userUpdates.location.getLongitude();
                     LatLng loc1 = new LatLng(currentLatitude, currentLongitude);
 
                     gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(loc1, 16));
@@ -1860,15 +1870,15 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         for (int i = 0; i < setBusStations().size(); i++) {
             Station station = setBusStations().get(i);
 
-            if (userLocation.location != null) {
-                curLocation = new LatLng(userLocation.location.getLatitude(), userLocation.location.getLongitude());
+            if (userUpdates.location != null) {
+                curLocation = new LatLng(userUpdates.location.getLatitude(), userUpdates.location.getLongitude());
                 distance = (int) SphericalUtil.computeDistanceBetween(curLocation, station.getPosition());
                 station.setDistance(distance);
 
                 if (distance < 1000) {
 
                     if (station.type.equals("BUS")) {
-                        String origin = String.valueOf(userLocation.location.getLatitude()) + "," + String.valueOf(userLocation.location.getLongitude());
+                        String origin = String.valueOf(userUpdates.location.getLatitude()) + "," + String.valueOf(userUpdates.location.getLongitude());
                         String destination = String.valueOf(station.position.latitude) + "," + String.valueOf(station.position.longitude);
 
 

@@ -24,4 +24,5 @@
     <string name="lrt_text">Indicates Light Rail Stations</string>
     <string name="bus_stations_text">Indicates Bus Stations</string>
     <string name="show_drawer">show drawer</string>
+    <string name="no_facilities">No access to any facilities at this Station!</string>
 </resources>

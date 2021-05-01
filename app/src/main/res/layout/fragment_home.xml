@@ -6,7 +6,7 @@
     android:layout_marginTop="?actionBarSize"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.home.HomeFragment"
+    tools:context=".HomeFragment"
     android:orientation="vertical"
     android:weightSum="20">
 
