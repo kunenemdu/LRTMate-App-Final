@@ -30,4 +30,8 @@
         <item>Bicycle</item>
         <item>None</item>
     </string-array>
+    <string-array name="roles">
+        <item>User</item>
+        <item>Driver</item>
+    </string-array>
 </resources>

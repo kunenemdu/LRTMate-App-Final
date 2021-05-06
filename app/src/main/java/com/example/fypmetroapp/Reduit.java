@@ -7,7 +7,7 @@ public class Reduit extends Station {
     public Station addStation() {
         Station station = new Station();
         station.name = "Reduit";
-        station.type = "BUS";
+        station.type = "B";
         station.position = new LatLng(-20.232312, 57.498751);
         return station;
     }

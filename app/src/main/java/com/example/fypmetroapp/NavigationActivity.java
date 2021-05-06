@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
@@ -79,18 +80,27 @@ public class NavigationActivity extends AppCompatActivity {
         fm.executePendingTransactions();
         //buggy switching from launch
         active = homeFragment;
-        preferences = this.getSharedPreferences("user", Context.MODE_PRIVATE);
+        preferences = this.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         stationLegendReminder = new Dialog(this);
-        showStationsLegend();
+
+        boolean legend_seen = preferences.getBoolean("legend_seen", false);
+        if (!legend_seen)
+            showStationsLegend();
     }
 
+    @SuppressLint("NewApi")
     private void showStationsLegend () {
         stationLegendReminder.setContentView(R.layout.station_legend_reminder);
         stationLegendReminder.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
         ImageButton closeDialog = stationLegendReminder.findViewById(R.id.dialog_closeX);
         stationLegendReminder.show();
 
-        closeDialog.setOnClickListener(v -> stationLegendReminder.dismiss());
+        closeDialog.setOnClickListener(v -> {
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean("legend_seen", true);
+            editor.apply();
+            stationLegendReminder.dismiss();
+        });
     }
 
     @SuppressLint("NewApi")
@@ -167,31 +177,28 @@ public class NavigationActivity extends AppCompatActivity {
             @Override
             public void run() {
                 uid = firebaseAuth.getCurrentUser().getUid();
-                //Log.e("user", userid);
+                //Log.e("user", uid);
+                SharedPreferences pref = getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+                String role = pref.getString("role", null);
 
-                DocumentReference documentReference = firebaseFirestore.collection("users").document(uid);
-                documentReference.addSnapshotListener(NavigationActivity.this, new EventListener<DocumentSnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException error) {
-                        if (documentSnapshot != null) {
-                            if (documentSnapshot.exists() == true) {
-                                //show users full name
-                                name = documentSnapshot.getString("full_name");
-
-                                navname.setText(name);
-                                navid.setText(uid);
-                            }
+                DocumentReference documentReference = FirebaseFirestore.getInstance().collection(role).document(uid);
+                documentReference.addSnapshotListener(NavigationActivity.this, (documentSnapshot, error) -> {
+                    if (documentSnapshot != null) {
+                        if (documentSnapshot.exists() == true) {
+                            //show users full name
+                            name = documentSnapshot.getString("full_name");
+                            navname.setText(name);
+                            navid.setText(uid);
                         }
                     }
                 });
             }
-        }, 1000);
+        }, 100);
     }
 
     @SuppressLint("NewApi")
     public void LogOutUser () {
-        SharedPreferences preferences = this.getSharedPreferences("user", Context.MODE_PRIVATE);
-        preferences = this.getSharedPreferences("user", Context.MODE_PRIVATE);
+        SharedPreferences preferences = this.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.clear();
         editor.apply();
@@ -241,4 +248,10 @@ public class NavigationActivity extends AppCompatActivity {
             return false;
         }
     };
+
+    @Override
+    public void onBackPressed() {
+        moveTaskToBack(true);
+        super.onBackPressed();
+    }
 }

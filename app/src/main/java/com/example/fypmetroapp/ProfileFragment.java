@@ -1,5 +1,6 @@
 package com.example.fypmetroapp;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -17,6 +18,8 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+
+import java.util.Objects;
 
 public class ProfileFragment extends Fragment {
 
@@ -47,17 +50,16 @@ public class ProfileFragment extends Fragment {
             public void run() {
                 String userid = firebaseAuth.getCurrentUser().getUid();
                 //Log.e("user", userid);
+                SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+                String role = pref.getString("role", null);
 
-                DocumentReference documentReference = NavigationActivity.firebaseFirestore.collection("users").document(userid);
-                documentReference.addSnapshotListener(getActivity(), new EventListener<DocumentSnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException error) {
-                        if (documentSnapshot != null) {
-                            //show users full name
-                            fullName.setText("Hello, " + documentSnapshot.getString("full_name"));
-                            pointsView.setText(String.valueOf(documentSnapshot.getLong("points")));
-                            tripsView.setText(String.valueOf(documentSnapshot.getLong("trips")));
-                        }
+                DocumentReference documentReference = NavigationActivity.firebaseFirestore.collection(role).document(userid);
+                documentReference.addSnapshotListener(getActivity(), (documentSnapshot, error) -> {
+                    if (documentSnapshot != null) {
+                        //show users full name
+                        fullName.setText("Hello, " + documentSnapshot.getString("full_name"));
+                        pointsView.setText(String.valueOf(documentSnapshot.getLong("points")));
+                        tripsView.setText(String.valueOf(documentSnapshot.getLong("trips")));
                     }
                 });
             }

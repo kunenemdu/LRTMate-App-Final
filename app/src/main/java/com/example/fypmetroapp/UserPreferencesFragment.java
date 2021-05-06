@@ -1,5 +1,6 @@
 package com.example.fypmetroapp;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -28,36 +29,25 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class UserPreferencesFragment extends Fragment implements AdapterView.OnItemSelectedListener {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
     Button savePrefs;
     SharedPreferences sharedPreferences;
     String uid;
     Map<String, Object> this_user;
     DocumentReference documentPrefs;
+    FirebaseFirestore firebaseFirestore;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
         this_user = new HashMap<>();
-        sharedPreferences = getActivity().getSharedPreferences("user", Context.MODE_PRIVATE);
+        sharedPreferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         //Log.e("user", userid);
     }
 
@@ -79,8 +69,8 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
             savePrefs = getView().findViewById(R.id.savePrefs);
 
         // Create an ArrayAdapter using the string array and a default spinner layout
-            ArrayAdapter<CharSequence> freq_adapter = ArrayAdapter.createFromResource(getContext(),
-                    R.array.frequency, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> freq_adapter = ArrayAdapter.createFromResource(getContext(),
+                R.array.frequency, android.R.layout.simple_spinner_item);
         ArrayAdapter<CharSequence> life_adapter = ArrayAdapter.createFromResource(getContext(),
                 R.array.lifestyle, android.R.layout.simple_spinner_item);
         ArrayAdapter<CharSequence> tolerance_adapter = ArrayAdapter.createFromResource(getContext(),
@@ -115,24 +105,26 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
     }
 
     View.OnClickListener onClickListener = new View.OnClickListener() {
+        @SuppressLint("NewApi")
         @Override
         public void onClick(View v) {
-            Log.e("clicked", "save");
-            DocumentReference documentReference = NavigationActivity.firebaseFirestore.collection("users")
+            //Log.e("clicked", "save");
+            firebaseFirestore = FirebaseFirestore.getInstance();
+            SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+            String role = pref.getString("role", null);
+            Boolean done_prefs = pref.getBoolean("prefs_done", false);
+
+            documentPrefs = firebaseFirestore.collection(role)
                     .document(uid).collection("preferences").document("prefs");
 
-            documentReference.set(this_user).addOnSuccessListener(new OnSuccessListener<Void>() {
-                @Override
-                public void onSuccess(Void aVoid) {
-                    Toast.makeText(getContext(), "Preferences Saved!", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(getContext(), NavigationActivity.class));
-                }
-            }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Log.e("failed", "prefs");
-                    Log.e("failed", "onfailure triggered!" + e.toString());
-                }
+            documentPrefs.set(this_user).addOnSuccessListener(aVoid -> {
+                Toast.makeText(getContext(), "Preferences Saved!", Toast.LENGTH_SHORT).show();
+                SharedPreferences.Editor editor = pref.edit();
+                editor.putBoolean("prefs_done", true);
+                editor.apply();
+                startActivity(new Intent(getContext(), NavigationActivity.class));
+            }).addOnFailureListener(e -> {
+                Log.e("failed", "onfailure triggered!" + e.toString());
             });
         }
     };

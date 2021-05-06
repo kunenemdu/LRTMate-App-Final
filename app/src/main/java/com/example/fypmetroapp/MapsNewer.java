@@ -89,6 +89,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -123,6 +124,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import static android.graphics.Color.TRANSPARENT;
+import static android.graphics.Color.green;
 
 public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
@@ -164,10 +166,12 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     ArrayList<Marker> allLRTMarkers;
     ArrayList<Marker> allBusMarkers;
     ArrayList<Marker> allMarkers;
+    ArrayList<Station> allBusStations, allLRTStations;
     private TabAdapter adapter;
     private TabLayout tabLayout;
     private ViewPager viewPager;
     DatabaseReference userRef;
+    DatabaseReference driverRef;
     TextView timeText;
     TextView directionText;
     TextView busText, busAtStation;
@@ -180,12 +184,12 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     ArrayList<Bus> allBuses;
     int distance = 0;
     GeoFire userGeoFire;
+    GeoFire driverGeoFire;
     public static ArrayList<Polyline> route = new ArrayList<>();
     SharedPreferences preferences;
     LocationRequest locationRequest;
     Marker userMarker;
-    List<StationFence> stationsFences;
-
+    Marker driverMarker;
     //Class Declarations
     Origin origin = new Origin();
     Destination destination = new Destination();
@@ -193,6 +197,12 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     Fragment active;
     Dialog stationDetailsDialog;
     GlobalProperties properties = new GlobalProperties();
+    FirebaseAuth firebaseAuth = NavigationActivity.firebaseAuth;
+    public static String uid;
+    public static String driverID;
+    public static List<StationFence> stationsFences;
+    Station _WHERE_I_AM;
+    ArrayList<Station> _approaching;
 
     @Nullable
     @Override
@@ -206,44 +216,50 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         geofencingClient = LocationServices.getGeofencingClient(MapsNewer.this.getContext());
-        preferences = this.getActivity().getSharedPreferences("user", Context.MODE_PRIVATE);
+        preferences = this.getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         stationDetailsDialog = new Dialog(getContext());
+
+        firebaseAuth = FirebaseAuth.getInstance();
     }
 
     private void buildLocationCallback() {
         locationCallback = new LocationCallback() {
+            @SuppressLint("MissingPermission")
             @Override
             public void onLocationResult(LocationResult locationResult) {
-
                 if (gMap != null) {
+                    uid = firebaseAuth.getCurrentUser().getUid();
 
-                    userGeoFire.setLocation("You", new GeoLocation(
+                    userGeoFire.setLocation(uid, new GeoLocation(
                             locationResult.getLastLocation().getLatitude(),
                             locationResult.getLastLocation().getLongitude()), (key, error) -> {
-
                                 if (userMarker != null) userMarker.remove();
 
                                 userMarker = gMap.addMarker(new MarkerOptions()
                                         .position(new LatLng(locationResult.getLastLocation().getLatitude(),
                                                 locationResult.getLastLocation().getLongitude()))
-                                        .title("You"));
-                                curLocation = userMarker.getPosition();
-                                userUpdates.latLngLocation = userMarker.getPosition();
-                                ShowNearestStations();
-                                gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userMarker.getPosition(), 13.0f));
-                                initStationsFences();
+                                        .visible(false)
+                                        .title(uid));
 
+                                curLocation = userMarker.getPosition();
+                                userUpdates.setLatLngLocation(curLocation);
+                                userUpdates.setLocation(locationResult.getLastLocation());
+                                ShowNearestStations();
+                                gMap.animateCamera(CameraUpdateFactory
+                                        .newLatLngZoom(userMarker.getPosition(), 13.0f));
+                                initStationsFences();
+                                Log.e("maps loc", curLocation.toString());
                                 //area identifiers
                                 for (StationFence stationFence: getStationsFences()){
                                     gMap.addCircle(new CircleOptions().center(stationFence.stationLocation)
-                                            .radius(500)//metres
+                                            .radius(250)//metres
                                             .strokeColor(Color.BLUE)
                                             .fillColor(0x220000FF)
-                                            .strokeWidth(5.0f));
+                                            .strokeWidth(1.0f));
 
                                     //do this when user enters GeoFence
                                     GeoQuery query = userGeoFire.queryAtLocation(
-                                            new GeoLocation(stationFence.stationLocation.latitude, stationFence.stationLocation.longitude), 0.5f);
+                                            new GeoLocation(stationFence.stationLocation.latitude, stationFence.stationLocation.longitude), 0.25f);
                                     query.addGeoQueryDataEventListener(MapsNewer.this);
                                 }
                             });
@@ -252,7 +268,39 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         };
     }
 
+    private void buildDriverLocationCallback() {
+        locationCallback = new LocationCallback() {
+            @SuppressLint("MissingPermission")
+            public void onLocationResult(LocationResult locationResult) {
+                if (gMap != null) {
+                    driverID = firebaseAuth.getCurrentUser().getUid();
+                    driverGeoFire.setLocation(driverID, new GeoLocation(
+                            locationResult.getLastLocation().getLatitude(),
+                            locationResult.getLastLocation().getLongitude()), (key, error) -> {
+                                if (driverMarker != null) driverMarker.remove();
+
+                                driverMarker = gMap.addMarker(new MarkerOptions()
+                                        .position(new LatLng(locationResult.getLastLocation().getLatitude(),
+                                                locationResult.getLastLocation().getLongitude()))
+                                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.bus_icon)));
+
+                                Log.e("bus loc", String.valueOf(driverMarker.getPosition()));
+
+                            });
+                }
+            }
+        };
+    }
+
     private void buildLocationRequest() {
+        locationRequest = new LocationRequest();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(2500);
+        locationRequest.setSmallestDisplacement(10f);
+    }
+
+    private void buildDriverLocationRequest() {
         locationRequest = new LocationRequest();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setInterval(5000);
@@ -519,6 +567,31 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                     }
                 }).check();
 
+        Dexter.withActivity(getActivity())
+                .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                .withListener(new PermissionListener() {
+                    @Override
+                    public void onPermissionGranted(PermissionGrantedResponse response) {
+                        //buildDriverLocationRequest();
+                        //buildDriverLocationCallback();
+                        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
+                        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
+                                .findFragmentById(R.id.mainMapFrags);
+                        mapFragment.getMapAsync(MapsNewer.this::onMapReady);
+                        GeoFireConfig();
+                    }
+
+                    @Override
+                    public void onPermissionDenied(PermissionDeniedResponse response) {
+                        Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+
+                    }
+                }).check();
+
         initMarkerComponent();
         initNearByComponent();
         initLRT_StationScheduleSheet();
@@ -533,34 +606,30 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         stationsFences = new ArrayList<>();
 
         for (Marker this_marker: getAllMarkers()){
-            //instantiate the station GeoFence
-            StationFence stationFence = new StationFence();
+            LatLng statLoc = new LatLng(this_marker.getPosition().latitude, this_marker.getPosition().longitude);
+            String statName = this_marker.getTitle();
+            String type = (String) this_marker.getTag();
 
-            stationFence.stationLocation = new LatLng(this_marker.getPosition().latitude, this_marker.getPosition().longitude);
-            stationFence.stationName = this_marker.getTitle();
+            //instantiate the station GeoFence
+            StationFence stationFence = new StationFence(statName, statLoc, type);
 
             stationsFences.add(stationFence);
-
-            setStationsFences(stationsFences);
             /*FirebaseDatabase.getInstance()
-                    .getReference("StationFence")
+                    .getReference("StationFences")
                     .child("Stations").child(stationFence.stationName).setValue(stationFence.stationLocation)
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            Toast.makeText(getContext(), "Added!", Toast.LENGTH_SHORT).show();
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(getContext(), ""+e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            });*/
+                    .addOnCompleteListener(task -> Toast.makeText(getContext(), "Added!", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(getContext(), ""+e.getMessage(), Toast.LENGTH_SHORT).show());
+
+            FirebaseDatabase.getInstance()
+                    .getReference("StationFences")
+                    .child("Stations").child(stationFence.stationName).child("type").setValue(stationFence.type)
+                    .addOnCompleteListener(task -> Toast.makeText(getContext(), "Added!", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(getContext(), ""+e.getMessage(), Toast.LENGTH_SHORT).show());*/
         }
         setStationsFences(stationsFences);
     }
 
-    public List<StationFence> getStationsFences() {
+    public static List<StationFence> getStationsFences() {
         return stationsFences;
     }
 
@@ -568,9 +637,19 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         this.stationsFences = stationsFences;
     }
 
+    public Station get_WHERE_I_AM() {
+        return _WHERE_I_AM;
+    }
+
+    public void set_WHERE_I_AM(Station _WHERE_I_AM) {
+        this._WHERE_I_AM = _WHERE_I_AM;
+    }
+
     private void GeoFireConfig() {
         userRef = FirebaseDatabase.getInstance().getReference("lrtmateapp");
+        driverRef = FirebaseDatabase.getInstance().getReference("drivers");
         userGeoFire = new GeoFire(userRef);
+        driverGeoFire = new GeoFire(driverRef);
     }
 
     public ArrayList<Marker> getAllMarkers() {
@@ -1193,7 +1272,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             LRTstation.name = LRTmarker.getTitle();
             LRTstation.distance = distance;
             LRTstation.position = LRTmarker.getPosition();
-            LRTstation.type = "LRT";
+            LRTstation.type = "L";
             if (distance <= 1000)
                 nearbyStations.add(LRTstation);
         }
@@ -1212,7 +1291,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             BUSstation.name = BUSmarker.getTitle();
             BUSstation.distance = distance;
             BUSstation.position = BUSmarker.getPosition();
-            BUSstation.type = "BUS";
+            BUSstation.type = "B";
             if (distance <= 1000)
                 nearbyStations.add(BUSstation);
         }
@@ -1220,7 +1299,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         setAllMarkers(allMarkers);
         //sort by closest distance
         Collections.sort(nearbyStations, new SortByDistance());
-
+        int green = getResources().getColor(R.color.quantum_googgreen);
         //inflate each LRT station to view
         for (int x = 0; x < nearbyStations.size(); x++) {
             Station station = nearbyStations.get(x);
@@ -1228,15 +1307,16 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             LayoutInflater inflater = MapsNewer.this.getLayoutInflater();
             TableRow mainRow = new TableRow(MapsNewer.this.getContext());
 
-            if (station.type == Config.STATION_TYPE_LRT) {
+            if (station.type.equals(Config.STATION_TYPE_LRT)) {
                 inflater.inflate(R.layout.lrt_row_to_inflate, mainRow);
 
                 stopText = new TextView(mainRow.getContext());
                 stopDistanceText = new TextView(mainRow.getContext());
-
+                //int distance_to_nearest = (int) SphericalUtil.computeDistanceBetween(curLocation, station.distance);
                 //user distance from stops CLOSEST-TO-FARTHEST
                 //TODO: SHOW DISTANCE IN MINUTES ACCORDING TO CURRENT VEHICLE/TRANSPORT/SPEED
-                stopDistanceText.setText("< " + 1000 + " m away");
+                stopDistanceText.setText("\tless than: " + station.distance + "m away");
+                stopDistanceText.setTextColor(green);
 
                 stopText.setText(station.name);
                 stopText.setTextAppearance(R.style.station_text);
@@ -1247,7 +1327,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                 //onclick listener for each row
                 mainRow.setOnClickListener(v -> ClickedNearbyStation(station.name));
                 if (mainTable_stations != null) mainTable_stations.addView(mainRow);
-            } else if (station.type == Config.STATION_TYPE_BUS) {
+            } else if (station.type.equals(Config.STATION_TYPE_BUS)) {
                 inflater.inflate(R.layout.bus_row_to_inflate, mainRow);
 
                 stopText = new TextView(mainRow.getContext());
@@ -1256,14 +1336,15 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
                 //user distance from stops CLOSEST-TO-FARTHEST
                 //TODO: SHOW DISTANCE IN MINUTES ACCORDING TO CURRENT VEHICLE/TRANSPORT/SPEED
-                stopDistanceText.setText("<" + 1000 + "m away");
+                stopDistanceText.setText("\tless than: " + station.distance + "m away");
+                stopDistanceText.setTextColor(green);
 
                 stopText.setText(station.name);
                 stopText.setTextAppearance(R.style.station_text);
                 stopText.setPadding(0, 40, 0, 0);
 
                 //TODO: ADD BUS STATIONS # ON EACH ROW
-                for (int i = 0; i < allBuses.size(); i++) {
+                /*for (int i = 0; i < allBuses.size(); i++) {
                     Bus bus = allBuses.get(i);
                     ArrayList<Station> stations = bus.getStops();
 
@@ -1274,7 +1355,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                             busText.setText(String.valueOf(bus.getName()));
                         }
                     }
-                }
+                }*/
 
                 mainRow.addView(stopText);
                 mainRow.addView(busText);
@@ -1323,7 +1404,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             BUSstation.name = station.name;
             BUSstation.distance = distance;
             BUSstation.position = station.position;
-            BUSstation.type = "BUS";
+            BUSstation.type = "B";
             nearbyStations.add(BUSstation);
         }
 
@@ -1658,7 +1739,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                             bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
                             ShowRouteStations(thisBus);
                             new Bus().busRoute(thisBus);
-                            bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_EXPANDED);
+                            stationDetailsDialog.dismiss();
+                            bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
                         }
                     }
                 });
@@ -1766,6 +1848,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     //add LRT station markers to map
     private void addRailStations() {
         allLRTMarkers = new ArrayList<>();
+        allLRTStations = new ArrayList<>();
+
         //custom marker size
         int height = 235;
         int width = 200;
@@ -1775,29 +1859,32 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
         for (int i = 0; i < setLrtStations().size(); i++) {
             Station station = setLrtStations().get(i);
-
-            //get LatLng for each marker in ArrayList
-            lrtMarker = gMap.addMarker(new MarkerOptions()
-                    .position(new LatLng(station.position.latitude, station.position.longitude))
-                    .icon(smallMarkerIcon)
-                    .title(station.name)
-                    .zIndex(5.0f)
-            );
-            lrtMarker.setTag("L");
-            allLRTMarkers.add(lrtMarker);
+            if (station != null) {
+                //get LatLng for each marker in ArrayList
+                lrtMarker = gMap.addMarker(new MarkerOptions()
+                        .position(station.position)
+                        .icon(smallMarkerIcon)
+                        .title(station.name)
+                        .zIndex(5.0f)
+                );
+                lrtMarker.setTag("L");
+                allLRTMarkers.add(lrtMarker);
+                allLRTStations.add(station);
+            } else
+                Log.e("its", null);
         }
     }
 
     //TODO: CHANGE IMPLEMENTATION OF LRT STATIONS
     private ArrayList<Station> setLrtStations () {
         ArrayList<Station> stations = new ArrayList<>();
-        Station RoseHill = new Station().setStations("Rose Hill Central", "LRT", new LatLng(-20.2421818, 57.4758875));
-        Station Vander = new Station().setStations("Vandersmeech", "LRT", new LatLng(-20.2354926, 57.473157));
-        Station BeauB = new Station().setStations("Beau Bassin", "LRT", new LatLng(-20.2266891, 57.4673957));
-        Station Barkly = new Station().setStations("Barkly", "LRT", new LatLng(-20.2209104, 57.4584639));
-        Station Coromandel = new Station().setStations("Coromandel", "LRT", new LatLng(-20.1837264, 57.4693912));
-        Station StLouis = new Station().setStations("St Louis", "LRT", new LatLng(-20.180942, 57.4767888));
-        Station PortLouis = new Station().setStations("Port Louis Victoria", "LRT", new LatLng(-20.1625125, 57.4982089));
+        Station RoseHill = new Station().setStations("Rose Hill Central", "L", new LatLng(-20.2421818, 57.4758875));
+        Station Vander = new Station().setStations("Vandersmeech", "L", new LatLng(-20.2354926, 57.473157));
+        Station BeauB = new Station().setStations("Beau Bassin", "L", new LatLng(-20.2266891, 57.4673957));
+        Station Barkly = new Station().setStations("Barkly", "L", new LatLng(-20.2209104, 57.4584639));
+        Station Coromandel = new Station().setStations("Coromandel", "L", new LatLng(-20.1837264, 57.4693912));
+        Station StLouis = new Station().setStations("St Louis", "L", new LatLng(-20.180942, 57.4767888));
+        Station PortLouis = new Station().setStations("Port Louis Victoria", "L", new LatLng(-20.1625125, 57.4982089));
         stations.add(RoseHill);
         stations.add(Vander);
         stations.add(BeauB);
@@ -1818,6 +1905,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     //bus station markers
     private void addBusStations () {
         allBusMarkers = new ArrayList<>();
+        allBusStations = new ArrayList<>();
         //custom marker size
         int height = 235;
         int width = 200;
@@ -1836,6 +1924,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             );
             busMarker.setTag("B");
             allBusMarkers.add(busMarker);
+            allBusStations.add(station);
         }
     }
 
@@ -1877,7 +1966,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
                 if (distance < 1000) {
 
-                    if (station.type.equals("BUS")) {
+                    if (station.type.equals("B")) {
                         String origin = String.valueOf(userUpdates.location.getLatitude()) + "," + String.valueOf(userUpdates.location.getLongitude());
                         String destination = String.valueOf(station.position.latitude) + "," + String.valueOf(station.position.longitude);
 
@@ -1897,8 +1986,39 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
     @Override
     public void onDataEntered(DataSnapshot dataSnapshot, GeoLocation location) {
-        Log.e("entered", dataSnapshot.toString());
         sendNotif("LRTMate App", String.format("%s entered the station.", dataSnapshot.getKey()));
+        _approaching = new ArrayList<>();
+        findMe(location);
+    }
+
+    private void findMe (GeoLocation location) {
+        boolean found = false;
+        int nearest_station = 0;
+        LatLng userLatlng = new LatLng(location.latitude, location.longitude);
+
+        while (!found) {
+            for (StationFence stationFence: getStationsFences()) {
+                nearest_station = (int) SphericalUtil.computeDistanceBetween(userLatlng, stationFence.stationLocation);
+                if (nearest_station < 100) {
+                    Log.e("distance to nearest", String.valueOf(nearest_station));
+                    if (nearest_station < 60) {
+                        Station station = new Station();
+                        station.name = stationFence.stationName;
+                        station.type = stationFence.type;
+                        station.position = stationFence.stationLocation;
+                        station.distance = nearest_station;
+                        _approaching.add(station);
+
+                        Log.e("possibly at", String.valueOf(nearest_station));
+                        for (Station station1: _approaching)
+                            Log.e("STAT", station1.getName());
+                        found = true;
+                    }
+                } else {
+                    found = true;
+                }
+            }
+        }
     }
 
     @Override

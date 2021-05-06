@@ -9,22 +9,18 @@ import android.location.Criteria;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
@@ -40,7 +36,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.maps.android.SphericalUtil;
@@ -62,26 +58,33 @@ public class HomeFragment extends Fragment {
     Location mLocation;
     LatLng mLocLatLng;
     GoogleMap gMap;
-    int pre_total_distance = 0, user_dist_covered = 0, new_total_distance;
+    int pre_total_distance = 0;
     GlobalProperties properties = new GlobalProperties();
     UserUpdates userUpdates = new UserUpdates();
     LocationRequest locationRequest;
     FusedLocationProviderClient fusedLocationProviderClient;
-    DatabaseReference userRef;
-    FloatingActionButton fabDirections;
+    DatabaseReference userRef, stationRef;
     LocationCallback locationCallback;
-    GeoFire userGeoFire;
-    boolean travelling = false;
-    Button begin_btn;
-    ProgressBar progressBar;
+    GeoFire userGeoFire, stationGeoFire;
+    Boolean requestingLocationUpdates = false;
+    TextView status;
+    String userid;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        View root = inflater.inflate(R.layout.fragment_directions, container, false);
+        View root = inflater.inflate(R.layout.fragment_home, container, false);
 
         return root;
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+        userid = firebaseAuth.getCurrentUser().getUid();
+        super.onCreate(savedInstanceState);
+    }
+
+    @SuppressLint("MissingPermission")
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -91,14 +94,7 @@ public class HomeFragment extends Fragment {
         LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
         Criteria mCriteria = new Criteria();
         String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
-
-        if (ActivityCompat.checkSelfPermission
-                (getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission
-                (getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-
+        status = getView().findViewById(R.id.currentStatus);
         mLocation = manager.getLastKnownLocation(bestProvider);
         if (mLocation != null) {
             userUpdates.setLocation(mLocation);
@@ -107,17 +103,12 @@ public class HomeFragment extends Fragment {
             String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
             //locText.setText(userLocation);
 
-            LatLng destination_example = new LatLng(-20.2653072, 57.4783713);
+            LatLng destination_example = new LatLng(-20.275661, 57.482423);
             userUpdates.setLatLngDestination(destination_example);
             //Log.e("destination", userUpdates.latLngDestination.toString());
             pre_total_distance = (int) SphericalUtil.computeDistanceBetween(userLatLng, destination_example);
             userUpdates.setPre_total_dist(pre_total_distance);
         }
-
-        begin_btn = getView().findViewById(R.id.begin_btn);
-        begin_btn.setOnClickListener(v -> {
-            begin(v);
-        });
 
         Dexter.withActivity(getActivity())
                 .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -131,6 +122,7 @@ public class HomeFragment extends Fragment {
                                 .findFragmentById(R.id.home_map_frags);
                         mapFragment.getMapAsync(HomeFragment.this::onMapReady);
                         GeoFireConfig();
+                        GeoFireConfigStations();
                     }
 
                     @Override
@@ -154,7 +146,7 @@ public class HomeFragment extends Fragment {
             if (addresses != null && addresses.size() > 0) {
 
 
-                userLoc = addresses.get(0).getLocality() + ", "+addresses.get(0).getCountryName();
+                userLoc = addresses.get(0).getLocality() + ", " + addresses.get(0).getCountryName();
                 String address = addresses.get(0).getAddressLine(0); // If any additional address line present than only, check with max available address lines by getMaxAddressLineIndex()
                 String city = addresses.get(0).getLocality();
                 String state = addresses.get(0).getAdminArea();
@@ -169,55 +161,14 @@ public class HomeFragment extends Fragment {
         return userLoc;
     }
 
-    public void begin (View view) {
-        user_dist_covered = 0;
-        progressBar = (ProgressBar) getView().findViewById(R.id.distance_bar);
-        new ProgressSet().execute();
-    }
-
-    public class ProgressSet extends AsyncTask<Void, Integer, String> {
-        @Override
-        protected String doInBackground(Void... voids) {
-            if (pre_total_distance != 0) {
-                for (int c = userUpdates.getCovered_dist(); c <= userUpdates.getPre_total_dist(); c += user_dist_covered) {
-                    if (c > 0) {
-                        SystemClock.sleep(100);
-
-                        new_total_distance = (int) SphericalUtil.computeDistanceBetween(userUpdates.latLngLocation, userUpdates.latLngDestination);
-                        userUpdates.setNew_total_dist(new_total_distance);
-                        Log.e("pre", String.valueOf(userUpdates.getPre_total_dist()));
-                        Log.e("new", String.valueOf(userUpdates.getNew_total_dist()));
-
-                        int pre_user_dist_covered = userUpdates.getPre_total_dist() - userUpdates.getNew_total_dist();
-                        user_dist_covered += pre_user_dist_covered;
-                        userUpdates.setCovered_dist(user_dist_covered);
-                        Log.e("covered", String.valueOf(user_dist_covered));
-
-                        publishProgress(user_dist_covered);
-                        if (user_dist_covered == userUpdates.getPre_total_dist())
-                            Toast.makeText(getContext(), "Reached Destination", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-            return "Completed!";
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            super.onProgressUpdate(values);
-            progressBar.setProgress(values[0]);
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            Toast.makeText(getContext(), s, Toast.LENGTH_SHORT).show();
-        }
-    }
-
     private void GeoFireConfig() {
         userRef = FirebaseDatabase.getInstance().getReference("lrtmateapp");
         userGeoFire = new GeoFire(userRef);
+    }
+
+    private void GeoFireConfigStations() {
+        stationRef = FirebaseDatabase.getInstance().getReference("StationFences").child("Stations");
+        stationGeoFire = new GeoFire(stationRef);
     }
 
     private void buildLocationCallback() {
@@ -226,18 +177,23 @@ public class HomeFragment extends Fragment {
             public void onLocationResult(LocationResult locationResult) {
                 gMap = properties.getgMap();
                 if (gMap != null) {
+                    if (userid != null) {
+                        userGeoFire.setLocation(userid, new GeoLocation(
+                                locationResult.getLastLocation().getLatitude(),
+                                locationResult.getLastLocation().getLongitude()));
 
-                    userGeoFire.setLocation("User",new GeoLocation(
-                            locationResult.getLastLocation().getLatitude(),
-                            locationResult.getLastLocation().getLongitude()));
-
-                    LatLng currentLatLngLocation = new LatLng(locationResult.getLastLocation().getLatitude(), locationResult.getLastLocation().getLongitude());
-                    Location currentLocation = new Location(locationResult.getLastLocation());
-
-                    userUpdates.setLocation(currentLocation);
-                    userUpdates.setLatLngLocation(currentLatLngLocation);
-
-                    //Log.e("previous distance", String.valueOf(pre_total_distance));
+                        startLocationUpdates();
+                        LatLng currentLatLngLocation = userUpdates.getLatLngLocation();
+                        Location currentLocation = locationResult.getLastLocation();
+/*
+                        Log.e("home loc", currentLocation.toString());
+                        Log.e("home loc", currentLatLngLocation.toString());*/
+                        //Log.e("previous distance", String.valueOf(pre_total_distance));
+                    } else {
+                        Log.e("no", "id");
+                    }
+                } else {
+                    Log.e("maps", "failed");
                 }
             }
         };
@@ -249,6 +205,19 @@ public class HomeFragment extends Fragment {
         locationRequest.setInterval(5000);
         locationRequest.setFastestInterval(2500);
         locationRequest.setSmallestDisplacement(10f);
+    }
+
+    @Override
+    public void onStop() {
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+        super.onStop();
+    }
+
+    @SuppressLint("MissingPermission")
+    private void startLocationUpdates() {
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest,
+                locationCallback,
+                Looper.getMainLooper());
     }
 
     @SuppressLint({"ResourceType", "NewApi"})

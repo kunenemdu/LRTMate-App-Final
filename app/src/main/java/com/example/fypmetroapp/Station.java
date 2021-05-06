@@ -51,6 +51,7 @@ public class Station {
         station.name = name;
         station.type = type;
         station.position = position;
+        station.distance = distance;
         return station;
     }
 }

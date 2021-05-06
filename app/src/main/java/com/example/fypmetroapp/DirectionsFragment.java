@@ -3,7 +3,6 @@ package com.example.fypmetroapp;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -50,13 +49,13 @@ public class DirectionsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_directions, container, false);
+        return inflater.inflate(R.layout.activity_directions, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        locText = getView().findViewById(R.id.locText);
+        //locText = getView().findViewById(R.id.locText);
 
         /*
          * AUTO COMPLETE SEARCH BAR */

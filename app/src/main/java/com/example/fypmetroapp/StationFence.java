@@ -5,11 +5,11 @@ import com.google.android.gms.maps.model.LatLng;
 public class StationFence {
     String stationName;
     LatLng stationLocation;
+    String type;
 
-    public StationFence () {}
-
-    public StationFence (String stationName, LatLng stationLocation) {
+    public StationFence (String stationName, LatLng stationLocation, String type) {
         this.stationName = stationName;
         this.stationLocation = stationLocation;
+        this.type = type;
     }
 }
