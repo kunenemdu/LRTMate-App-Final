@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -19,6 +20,7 @@ import android.widget.Toast;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -50,7 +52,7 @@ public class NavigationActivity extends AppCompatActivity {
     ImageButton showButton, hideButton, legendButton;
     public static FirebaseFirestore firebaseFirestore;
     public static FirebaseAuth firebaseAuth;
-    String name, uid;
+    String name, uid, role;
     public static TextView navname, navid;
     SharedPreferences preferences;
     public static Activity activity;
@@ -78,14 +80,21 @@ public class NavigationActivity extends AppCompatActivity {
         fm.beginTransaction().add(R.id.main_container, ticketFragment, "3").hide(ticketFragment).commit();
         fm.beginTransaction().add(R.id.main_container, profileFragment, "4").hide(profileFragment).commit();
         fm.executePendingTransactions();
-        //buggy switching from launch
+
+        //buggy switching from launch fix
         active = homeFragment;
-        preferences = this.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+
+        preferences = getApplicationContext().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        //Log.e("prefs are", preferences.getAll().toString());
         stationLegendReminder = new Dialog(this);
 
         boolean legend_seen = preferences.getBoolean("legend_seen", false);
-        if (!legend_seen)
-            showStationsLegend();
+        role = preferences.getString("role", null);
+
+        if (!role.equals("Driver")) {
+            if (legend_seen == false)
+                showStationsLegend();
+        }
     }
 
     @SuppressLint("NewApi")
@@ -106,7 +115,6 @@ public class NavigationActivity extends AppCompatActivity {
     @SuppressLint("NewApi")
     @Override
     protected void onStart() {
-        super.onStart();
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.main_toolbar);
         setSupportActionBar(toolbar);
         dl = findViewById(R.id.drawerLayout);
@@ -155,6 +163,7 @@ public class NavigationActivity extends AppCompatActivity {
         showButton.setOnClickListener(Drawer_Menu_Buttons);
         hideButton.setOnClickListener(Drawer_Menu_Buttons);
         getuser();
+        super.onStart();
     }
 
     //event listener for buttons
@@ -173,26 +182,16 @@ public class NavigationActivity extends AppCompatActivity {
     };
 
     public void getuser () {
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                uid = firebaseAuth.getCurrentUser().getUid();
-                //Log.e("user", uid);
-                SharedPreferences pref = getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-                String role = pref.getString("role", null);
+        new Handler().postDelayed(() -> {
+            uid = firebaseAuth.getCurrentUser().getUid();
+            //Log.e("user", uid);
 
-                DocumentReference documentReference = FirebaseFirestore.getInstance().collection(role).document(uid);
-                documentReference.addSnapshotListener(NavigationActivity.this, (documentSnapshot, error) -> {
-                    if (documentSnapshot != null) {
-                        if (documentSnapshot.exists() == true) {
-                            //show users full name
-                            name = documentSnapshot.getString("full_name");
-                            navname.setText(name);
-                            navid.setText(uid);
-                        }
-                    }
-                });
-            }
+            name = preferences.getString("full_name", null);
+            uid = preferences.getString("user_id", null);
+            role = preferences.getString("role", null);
+
+            navid.setText(uid);
+            navname.setText(name);
         }, 100);
     }
 
@@ -207,7 +206,7 @@ public class NavigationActivity extends AppCompatActivity {
         startActivity(logOutIntent);
     }
 
-    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
+    private final BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
         @Override
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -251,7 +250,7 @@ public class NavigationActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        moveTaskToBack(true);
+        moveTaskToBack(false);
         super.onBackPressed();
     }
 }

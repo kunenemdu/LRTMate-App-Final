@@ -21,67 +21,96 @@
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/phonetext"
-            android:layout_margin="10dp">
-
-            <androidx.cardview.widget.CardView
-                android:layout_height="40dp"
-                android:layout_width="40dp"
-                app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="25dp"
-                app:cardElevation="3dp">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_phone_"
-                    android:layout_gravity="center"
-                    app:tint="@color/yellow_700" />
-
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
-                android:layout_height="35dp"
-                android:layout_gravity="center"
-                android:layout_width="match_parent"
-                android:backgroundTint="@color/white"
-                app:cardBackgroundColor="@color/grey_20"
-                android:layout_marginLeft="-15dp">
-
-                <EditText
-                    android:layout_width="150dp"
-                    android:layout_height="52dp"
-                    android:inputType="textEmailAddress"
-                    android:hint="Email Address"
-                    android:textSize="12dp"
-                    android:id="@+id/txtEmail"
-                    android:textColor="@color/black"
-                    android:layout_marginLeft="10dp"
-                    android:layout_gravity="center"/>
-
-            </androidx.cardview.widget.CardView>
+            android:orientation="vertical"
+            android:gravity="center"
+            android:id="@+id/logDetailsLL"
+            android:layout_height="wrap_content">
 
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:id="@+id/roleLL"
                 android:layout_gravity="center"
-                android:background="@color/main_blue">
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/white"
+                    android:layout_gravity="center"
+                    android:text="Role:"/>
+
+                <Spinner
+                    android:id="@+id/role_spinner"
+                    style="@style/white_spinner"
+                    android:layout_gravity="center"
+                    android:layout_marginVertical="5sp"
+                    android:layout_width="wrap_content"
+                    android:dropDownWidth="match_parent"
+                    android:layout_height="wrap_content" />
 
 
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/emailLL"
+                android:layout_margin="10dp"
+                android:orientation="horizontal">
 
-        </LinearLayout>
+                <androidx.cardview.widget.CardView
+                    android:layout_height="40dp"
+                    android:layout_width="40dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="25dp"
+                    app:cardElevation="3dp">
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:id="@+id/passwordtext">
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/ic_baseline_alternate_email_24"
+                        android:layout_gravity="center"
+                        app:tint="@color/yellow_700" />
+
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_height="35dp"
+                    android:layout_gravity="center"
+                    android:layout_width="match_parent"
+                    android:backgroundTint="@color/white"
+                    app:cardBackgroundColor="@color/grey_20"
+                    android:layout_marginLeft="-15dp">
+
+                    <EditText
+                        android:layout_width="150dp"
+                        android:layout_height="52dp"
+                        android:inputType="textEmailAddress"
+                        android:hint="Email Address"
+                        android:textSize="12dp"
+                        android:id="@+id/txtEmail"
+                        android:textColor="@color/black"
+                        android:layout_marginLeft="10dp"
+                        android:layout_gravity="center"/>
+
+                </androidx.cardview.widget.CardView>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:background="@color/main_blue">
+
+
+                </LinearLayout>
+
+
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
+                android:id="@+id/passwordLL"
                 android:layout_height="wrap_content">
 
                 <androidx.cardview.widget.CardView
@@ -116,18 +145,22 @@
                         android:hint="Password"
                         android:textSize="12dp"
                         android:textColor="@color/black"
-                        android:layout_marginLeft="8dp"
+                        android:layout_marginLeft="10dp"
                         android:padding="8dp"
+                        android:nextFocusDown="@+id/doLogin"
                         android:layout_gravity="center"/>
 
                 </androidx.cardview.widget.CardView>
 
             </LinearLayout>
 
+        </LinearLayout>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:id="@+id/resetLL"
                 android:layout_margin="10sp"
                 android:background="@color/main_blue">
 
@@ -140,7 +173,7 @@
                     app:cardElevation="3dp">
 
                     <ImageButton
-                        android:id="@+id/forgot"
+                        android:id="@+id/resetBtn"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@color/transparent"
@@ -154,13 +187,10 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/white"
                     android:layout_gravity="center_vertical"
-                    android:text="Reset Password"/>
+                    android:text="Reset"/>
 
 
             </LinearLayout>
-
-
-        </LinearLayout>
 
 
 
@@ -170,60 +200,12 @@
             android:layout_gravity="center">
 
             <LinearLayout
-                android:id="@+id/forgotLinear"
-                android:layout_width="wrap_content"
-                android:visibility="invisible"
-                android:layout_height="wrap_content"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/forgotCard"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="5dp"
-                    app:cardBackgroundColor="@color/white"
-                    app:cardCornerRadius="25dp"
-                    app:cardElevation="3dp">
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="match_parent"
-                        app:cardBackgroundColor="@color/transparent"
-                        android:layout_height="match_parent">
-
-                        <ImageButton
-                            android:id="@+id/forgotReset"
-                            android:layout_width="match_parent"
-                            android:layout_gravity="center_vertical"
-                            android:layout_height="wrap_content"
-                            android:background="@color/transparent"
-                            android:src="@drawable/help_circle"
-                            app:tint="@color/black"/>
-
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center"
-                        android:paddingLeft="30dp"
-                        android:paddingRight="10dp"
-                        android:text="Reset Password."
-                        android:textColor="@color/black" />
-
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-
-            <LinearLayout
+                android:id="@+id/logButtonLL"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/logLinear"
                 android:gravity="center"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="@+id/forgotLinear"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 

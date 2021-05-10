@@ -112,7 +112,6 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
             firebaseFirestore = FirebaseFirestore.getInstance();
             SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
             String role = pref.getString("role", null);
-            Boolean done_prefs = pref.getBoolean("prefs_done", false);
 
             documentPrefs = firebaseFirestore.collection(role)
                     .document(uid).collection("preferences").document("prefs");

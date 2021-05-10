@@ -13,6 +13,7 @@ import android.os.PersistableBundle;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -30,9 +31,8 @@ public class MainActivity extends AppCompatActivity {
     Fragment placeholder;
     final FragmentManager fm = getSupportFragmentManager();
     Fragment active;
-    LinearLayout phoneLinear;
-    LinearLayout passwordLinear;
-    LinearLayout logLinear;
+    LinearLayout emailLL, passLL, resetLL, roleLL, logDetailsLL, logButtonLL;
+    EditText email, password;
     public View view;
 
     @Override
@@ -54,11 +54,16 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         register = findViewById(R.id.register);
         login = findViewById(R.id.login);
-        forgot = findViewById(R.id.forgot);
+        forgot = findViewById(R.id.resetBtn);
 
-        logLinear = findViewById(R.id.logLinear);
-        passwordLinear = findViewById(R.id.phonetext);
-        phoneLinear = findViewById(R.id.passwordtext);
+        logDetailsLL = findViewById(R.id.logDetailsLL);
+        passLL = findViewById(R.id.passwordLL);
+        resetLL = findViewById(R.id.resetLL);
+        roleLL = findViewById(R.id.roleLL);
+        logButtonLL = findViewById(R.id.logButtonLL);
+        emailLL = findViewById(R.id.emailLL);
+        email = findViewById(R.id.txtEmail);
+        password = findViewById(R.id.txtPassword);
 
         login.setOnClickListener(ButtonClicked);
         register.setOnClickListener(ButtonClicked);
@@ -80,10 +85,10 @@ public class MainActivity extends AppCompatActivity {
                                         R.anim.fragment_fade_exit
                                 )
                                 .commit();
-                        if (logLinear.getVisibility() == View.GONE || passwordLinear.getVisibility() == View.GONE || passwordLinear.getVisibility() == View.GONE) {
-                            logLinear.setVisibility(View.VISIBLE);
-                            phoneLinear.setVisibility(View.VISIBLE);
-                            passwordLinear.setVisibility(View.VISIBLE);
+                        if (logDetailsLL.getVisibility() == View.GONE || logButtonLL.getVisibility() == View.GONE || resetLL.getVisibility() == View.GONE) {
+                            logDetailsLL.setVisibility(View.VISIBLE);
+                            logButtonLL.setVisibility(View.VISIBLE);
+                            resetLL.setVisibility(View.VISIBLE);
                         }
                         active = loginFragment;
                     } else {
@@ -120,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     break;
 
-                case R.id.forgot:
+                case R.id.resetBtn:
                     fm.beginTransaction()
                             .hide(active)
                             .show(forgotFragment)

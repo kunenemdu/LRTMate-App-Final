@@ -2,6 +2,7 @@ package com.example.fypmetroapp;
 
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -13,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -49,6 +51,7 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
     private FirebaseAuth mAuth;
     Map<String, Object> this_user;
     String uid;
+    FirebaseFirestore firebaseFirestore;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -61,6 +64,7 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
             startActivity(new Intent(getContext(), NavigationActivity.class));
             return;
         }
+        firebaseFirestore = FirebaseFirestore.getInstance();
     }
 
     @Override
@@ -90,6 +94,10 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
         role_spinner.setOnItemSelectedListener(this);
 
         signup.setOnClickListener(v -> {
+            //hide keyboard
+            InputMethodManager inputMethodManager = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+            inputMethodManager.hideSoftInputFromWindow(v.getApplicationWindowToken(),0);
+
             // Showing progress dialog at user registration time.
             progressDialog.setMessage("Please Wait While Creating Your Account...");
             progressDialog.show();
@@ -146,7 +154,7 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
                                         this_user.put("trips", 0);
                                         this_user.put("role", role);
                                         if (role.equals("Driver")) {
-                                            DocumentReference documentReference = NavigationActivity.firebaseFirestore
+                                            DocumentReference documentReference = firebaseFirestore
                                                     .collection(role).document(uid);
                                             //free 15 points on registration
                                             this_user.put("points", 15);
@@ -155,7 +163,7 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
                                                     .addOnFailureListener(e -> Log.e(TAG, "onfailure triggered!" + e.toString()));
                                         }
                                         else if (role.equals("User")) {
-                                            DocumentReference documentReference = NavigationActivity.firebaseFirestore
+                                            DocumentReference documentReference = firebaseFirestore
                                                     .collection(role).document(uid);
                                             //free 5 points on registration
                                             this_user.put("points", 5);
@@ -172,23 +180,24 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
                                         editor.putInt("trips", 0);
                                         editor.putInt("trips", 0);
                                         editor.putString("role", role);
+
                                         if (role.equals("Driver")) {
                                             editor.putInt("points", 15);
                                         }
                                         else if (role.equals("User")) {
                                             editor.putInt("points", 5);
                                         }
-                                        editor.apply();
 
+                                        editor.apply();
                                         //Toast.makeText(getContext(), "Registration Success!", Toast.LENGTH_SHORT).show();
                                         registerProgress();
                                         //progressDialog.dismiss();
                                         startActivity(new Intent(getContext(), NavigationActivity.class));
                                     }
                                 });
-                            } else {
+                            } else if (!task.isSuccessful()){
                                 progressDialog.dismiss();
-                                Log.e("failed", "some reason");
+                                Toast.makeText(getContext(), task.getException().getMessage(), Toast.LENGTH_LONG).show();
                             }
                         });
                     }

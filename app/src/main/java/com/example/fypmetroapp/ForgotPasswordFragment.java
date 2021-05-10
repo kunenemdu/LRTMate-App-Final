@@ -63,20 +63,17 @@ public class ForgotPasswordFragment extends Fragment {
         recover = getView().findViewById(R.id.doRecover);
         phone = getView().findViewById(R.id.txtEmail);
 
-        recover.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String userPhone = phone.getText().toString().trim();
+        recover.setOnClickListener(v -> {
+            String userPhone = phone.getText().toString().trim();
 
-                if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.SEND_SMS)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    PermissionUtils.requestPermission((AppCompatActivity) getActivity(), MY_PERMISSIONS_REQUEST_SEND_SMS,
-                            Manifest.permission.SEND_SMS, true);
-                }
-                if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.SEND_SMS)
-                        == PackageManager.PERMISSION_GRANTED) {
-                    CheckUser(userPhone);
-                }
+            if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.SEND_SMS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                PermissionUtils.requestPermission((AppCompatActivity) getActivity(), MY_PERMISSIONS_REQUEST_SEND_SMS,
+                        Manifest.permission.SEND_SMS, true);
+            }
+            if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.SEND_SMS)
+                    == PackageManager.PERMISSION_GRANTED) {
+                CheckUser(userPhone);
             }
         });
     }

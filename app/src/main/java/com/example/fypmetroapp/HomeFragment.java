@@ -3,18 +3,24 @@ package com.example.fypmetroapp;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
+import android.text.format.Time;
+import android.transition.Transition;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,18 +42,32 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.maps.android.SphericalUtil;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
 import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
+import com.robinhood.ticker.TickerUtils;
+import com.robinhood.ticker.TickerView;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -58,17 +78,18 @@ public class HomeFragment extends Fragment {
     Location mLocation;
     LatLng mLocLatLng;
     GoogleMap gMap;
-    int pre_total_distance = 0;
     GlobalProperties properties = new GlobalProperties();
-    UserUpdates userUpdates = new UserUpdates();
     LocationRequest locationRequest;
     FusedLocationProviderClient fusedLocationProviderClient;
     DatabaseReference userRef, stationRef;
     LocationCallback locationCallback;
     GeoFire userGeoFire, stationGeoFire;
     Boolean requestingLocationUpdates = false;
-    TextView status;
-    String userid;
+    static TextView status, proximity, stationText, occupancy, statType, nextArrival;
+    String user_id;
+    static Button begin, stop;
+    static TickerView tickerView;
+    UserUpdates userUpdates;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -80,7 +101,8 @@ public class HomeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
-        userid = firebaseAuth.getCurrentUser().getUid();
+        user_id = firebaseAuth.getCurrentUser().getUid();
+        userUpdates = new UserUpdates();
         super.onCreate(savedInstanceState);
     }
 
@@ -94,29 +116,56 @@ public class HomeFragment extends Fragment {
         LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
         Criteria mCriteria = new Criteria();
         String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
+        occupancy = getView().findViewById(R.id.occupancy);
+        statType = getView().findViewById(R.id.stationType);
+        //nextArrival = getView().findViewById(R.id.nextArrival);
         status = getView().findViewById(R.id.currentStatus);
+        stationText = getView().findViewById(R.id.curStation);
+        proximity = getView().findViewById(R.id.proximity);
+        begin = getView().findViewById(R.id.begin_btn);
+        stop = getView().findViewById(R.id.stop_btn);
+
+        tickerView = getView().findViewById(R.id.nextArrival);
+        tickerView.setCharacterLists(TickerUtils.provideNumberList());
+
+        proximity.setText("Waiting to");
+        stationText.setText("Receive Updates...");
+        status.setText("Waiting to Receive Updates...");
+        occupancy.setText("Waiting to Receive Updates...");
+        statType.setText("Waiting to");
+        tickerView.setText("Receive Updates...");
+
+        statType.setTextColor(Color.BLACK);
+        //nextArrival.setTextColor(Color.BLACK);
+        status.setTextColor(Color.BLACK);
+        occupancy.setTextColor(Color.BLACK);
+        proximity.setTextColor(Color.BLACK);
+        stationText.setTextColor(Color.BLACK);
+
+        begin.setOnClickListener(track_buttons);
+        stop.setOnClickListener(track_buttons);
+
         mLocation = manager.getLastKnownLocation(bestProvider);
         if (mLocation != null) {
-            userUpdates.setLocation(mLocation);
-            userUpdates.setLatLngLocation(new LatLng(mLocation.getLatitude(), mLocation.getLongitude()));
-            LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-            String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
+            userUpdates.location = mLocation;
+            userUpdates.latLngLocation = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+            //LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+            //String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
             //locText.setText(userLocation);
-
-            LatLng destination_example = new LatLng(-20.275661, 57.482423);
-            userUpdates.setLatLngDestination(destination_example);
-            //Log.e("destination", userUpdates.latLngDestination.toString());
-            pre_total_distance = (int) SphericalUtil.computeDistanceBetween(userLatLng, destination_example);
-            userUpdates.setPre_total_dist(pre_total_distance);
         }
+
+        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+        String role = pref.getString("role", null);
 
         Dexter.withActivity(getActivity())
                 .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
                 .withListener(new PermissionListener() {
                     @Override
                     public void onPermissionGranted(PermissionGrantedResponse response) {
-                        buildLocationRequest();
-                        buildLocationCallback();
+                        if (role.equals("User")) {
+                            buildLocationRequest();
+                            buildLocationCallback();
+                        }
                         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
                         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
                                 .findFragmentById(R.id.home_map_frags);
@@ -135,6 +184,140 @@ public class HomeFragment extends Fragment {
 
                     }
                 }).check();
+
+    }
+
+    View.OnClickListener track_buttons = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.begin_btn:
+                    userUpdates.tracking = true;
+                    initTracking();
+                    break;
+                case R.id.stop_btn:
+                    userUpdates.tracking = false;
+                    stopTracking();
+                    break;
+            }
+        }
+    };
+
+    private void stopTracking () {
+        begin.setVisibility(View.VISIBLE);
+        stop.setVisibility(View.INVISIBLE);
+        if (userUpdates.tracking == false) {
+            proximity.setText("Waiting to");
+            stationText.setText("Receive Updates...");
+            status.setText("Waiting to Receive Updates...");
+            occupancy.setText("Waiting to Receive Updates...");
+            status.setTextColor(Color.BLACK);
+            occupancy.setTextColor(Color.BLACK);
+            proximity.setTextColor(Color.BLACK);
+            stationText.setTextColor(Color.BLACK);
+        }
+    }
+
+    public static void initOccupancy () {
+        if (UserUpdates.tracking == true) {
+            if (UserUpdates.nearest_station != null) {
+                if (UserUpdates.cur_stat_occupancy != 0) {
+                    if (UserUpdates.cur_stat_occupancy >= 3.0) {
+                        occupancy.setText("Very Active");
+                        occupancy.setTextColor(Color.RED);
+                    }
+                    else if (UserUpdates.cur_stat_occupancy >= 2.0) {
+                        occupancy.setText("Active");
+                        int orange = Color.rgb(255, 165, 0);
+                        occupancy.setTextColor(orange);
+                    }
+                    else {
+                        occupancy.setText("Quiet");
+                        occupancy.setTextColor(Color.GREEN);
+                    }
+                }
+            }
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    public void initTracking() {
+        begin.setVisibility(View.INVISIBLE);
+        stop.setVisibility(View.VISIBLE);
+        //Log.e("loc", UserUpdates.nearest_station.name);
+        //getCount(userUpdates.getNearest_station().name);
+
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                handler.postDelayed(this, 5000);
+                if (userUpdates.tracking == true) {
+                    if (userUpdates.nearest_station != null) {
+                        if (userUpdates.cur_stat_occupancy != 0) {
+                            //time = d/s [avg walking speed humans = 6kph]
+                            //TODO: CALCULATE THIS USING USER'S AVG SPEED IF ON FOOT/DRIVING/CYCLING
+                            int time = userUpdates.distance_to_nearest_station / 6;
+                            proximity.setText("~ " + time + " min(s) from");
+                            proximity.setTextColor(Color.GREEN);
+                            stationText.setText(userUpdates.nearest_station.name);
+                            stationText.setTextColor(Color.BLUE);
+
+                            if (userUpdates.cur_stat_occupancy >= 3.0) {
+                                occupancy.setText("Very Active");
+                                occupancy.setTextColor(Color.RED);
+                            }
+                            else if (userUpdates.cur_stat_occupancy >= 2.0) {
+                                occupancy.setText("Active");
+                                int orange = Color.rgb(255, 165, 0);
+                                occupancy.setTextColor(orange);
+                            }
+                            else {
+                                occupancy.setText("Quiet");
+                                occupancy.setTextColor(Color.GREEN);
+                            }
+
+                            try {
+                                Time current_time = new Time(Time.getCurrentTimezone());
+                                current_time.setToNow();
+                                SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                                Date date1 = format.parse(current_time.format("%k:%M"));
+                                String next = userUpdates.getCur_stat_next();
+                                Date date2 = format.parse(next);
+                                long difference = date2.getTime() - date1.getTime();
+                                int arrives_in = (int) (difference / 60000);
+                                Log.e("next arrives in", String.valueOf(arrives_in));
+                                statType.setText(userUpdates.getNearest_station().type);
+                                tickerView.setText(arrives_in + " minute(s)");
+                                //Log.e("next", userUpdates.getCur_stat_next());
+                                //Log.e("time", String.valueOf(current_time.format("%k:%M")));
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            }
+        }, 5000);
+    }
+
+    private Task<Integer> getCount(String stationName) {
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        DocumentReference ref = firebaseFirestore
+                .collection("stationdetails")
+                .document("arrivals")
+                .collection(userUpdates.nearest_station.type)
+                .document(stationName);
+
+        ref.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot snapshot = task.getResult();
+                userUpdates.cur_stat_next = (snapshot.getString("next"));
+                userUpdates.cur_stat_after = (snapshot.getString("after"));
+            }
+        });
+        return null;
     }
 
     public static String getAddress(Context context, double LATITUDE, double LONGITUDE) {
@@ -147,7 +330,9 @@ public class HomeFragment extends Fragment {
 
 
                 userLoc = addresses.get(0).getLocality() + ", " + addresses.get(0).getCountryName();
-                String address = addresses.get(0).getAddressLine(0); // If any additional address line present than only, check with max available address lines by getMaxAddressLineIndex()
+                // If any additional address line present than only, check with max available address lines by getMaxAddressLineIndex()
+                String address = addresses.get(0).getAddressLine(0);
+
                 String city = addresses.get(0).getLocality();
                 String state = addresses.get(0).getAdminArea();
                 String country = addresses.get(0).getCountryName();
@@ -177,13 +362,13 @@ public class HomeFragment extends Fragment {
             public void onLocationResult(LocationResult locationResult) {
                 gMap = properties.getgMap();
                 if (gMap != null) {
-                    if (userid != null) {
-                        userGeoFire.setLocation(userid, new GeoLocation(
+                    if (user_id != null) {
+                        userGeoFire.setLocation(user_id, new GeoLocation(
                                 locationResult.getLastLocation().getLatitude(),
                                 locationResult.getLastLocation().getLongitude()));
 
                         startLocationUpdates();
-                        LatLng currentLatLngLocation = userUpdates.getLatLngLocation();
+                        LatLng currentLatLngLocation = userUpdates.latLngLocation;
                         Location currentLocation = locationResult.getLastLocation();
 /*
                         Log.e("home loc", currentLocation.toString());
@@ -202,9 +387,9 @@ public class HomeFragment extends Fragment {
     private void buildLocationRequest() {
         locationRequest = new LocationRequest();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(5000);
+        locationRequest.setInterval(60000);
         locationRequest.setFastestInterval(2500);
-        locationRequest.setSmallestDisplacement(10f);
+        locationRequest.setSmallestDisplacement(25f);
     }
 
     @Override
@@ -272,7 +457,7 @@ public class HomeFragment extends Fragment {
                 LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
                 Criteria mCriteria = new Criteria();
                 String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
-                userUpdates.setLocation(manager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER));
+                userUpdates.location = (manager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER));
                 if (userUpdates.location != null) {
 
                     final double currentLatitude = userUpdates.location.getLatitude();

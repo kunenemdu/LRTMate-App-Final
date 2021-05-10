@@ -12,4 +12,8 @@ public class StationFence {
         this.stationLocation = stationLocation;
         this.type = type;
     }
+
+    public StationFence() {
+
+    }
 }
