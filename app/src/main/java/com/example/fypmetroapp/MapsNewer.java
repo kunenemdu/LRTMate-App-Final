@@ -197,7 +197,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     Fragment active;
     Dialog stationDetailsDialog;
     GlobalProperties properties = new GlobalProperties();
-    FirebaseAuth firebaseAuth = NavigationActivity.firebaseAuth;
+    FirebaseAuth firebaseAuth;
     public static String uid;
     public static String driverID;
     public static List<StationFence> stationsFences;
@@ -542,38 +542,21 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             }
         });
 
-        Dexter.withActivity(getActivity())
-                .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                .withListener(new PermissionListener() {
-                    @Override
-                    public void onPermissionGranted(PermissionGrantedResponse response) {
-                        buildLocationRequest();
-                        buildLocationCallback();
-                        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
-                        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
-                                .findFragmentById(R.id.mainMapFrags);
-                        mapFragment.getMapAsync(MapsNewer.this::onMapReady);
-                        GeoFireConfig();
-                    }
-
-                    @Override
-                    public void onPermissionDenied(PermissionDeniedResponse response) {
-                        Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-
-                    }
-                }).check();
+        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+        String role = pref.getString("role", null);
 
         Dexter.withActivity(getActivity())
                 .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
                 .withListener(new PermissionListener() {
                     @Override
                     public void onPermissionGranted(PermissionGrantedResponse response) {
-                        //buildDriverLocationRequest();
-                        //buildDriverLocationCallback();
+                        if (role.equals("Driver")) {
+                            buildDriverLocationRequest();
+                            buildDriverLocationCallback();
+                        } else if (role.equals("User")) {
+                            buildLocationRequest();
+                            buildLocationCallback();
+                        }
                         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
                         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
                                 .findFragmentById(R.id.mainMapFrags);
@@ -646,8 +629,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     }
 
     private void GeoFireConfig() {
-        userRef = FirebaseDatabase.getInstance().getReference("lrtmateapp");
-        driverRef = FirebaseDatabase.getInstance().getReference("drivers");
+        userRef = FirebaseDatabase.getInstance().getReference("User");
+        driverRef = FirebaseDatabase.getInstance().getReference("Driver");
         userGeoFire = new GeoFire(userRef);
         driverGeoFire = new GeoFire(driverRef);
     }
