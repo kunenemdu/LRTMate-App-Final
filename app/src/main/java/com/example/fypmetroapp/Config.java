@@ -26,6 +26,6 @@ public class Config {
     public static final String STATION_TYPE_LRT = "L";
     public static final int MODE_PRIVATE = 0;
     public static final int ACCURACY_DISTANCE = 15;
-    public static final int ALLOWED_PROXIMITY = 20;
+    public static final int ALLOWED_PROXIMITY = 35;
     public static final String MYAPI_KEY = "AIzaSyAYWL_z-TJOBptGAzkXbVB2ZE_NhP27Yx4";
 }
