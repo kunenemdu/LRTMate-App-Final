@@ -30,6 +30,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
@@ -117,12 +118,17 @@ public class LoginFragment extends Fragment implements AdapterView.OnItemSelecte
     private final View.OnClickListener ResetClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            logDetailsLL.setVisibility(View.GONE);
-            FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
-            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-            fragmentTransaction.add(R.id.mainLogin, new ForgotPasswordFragment());
-            fragmentTransaction
-                    .commit();
+            switch (v.getId()) {
+                case R.id.resetBtn:
+                case R.id.resetLL:
+                    logDetailsLL.setVisibility(View.GONE);
+                    FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
+                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                    fragmentTransaction.add(R.id.mainLogin, new ForgotPasswordFragment());
+                    fragmentTransaction
+                            .commit();
+                    break;
+            }
         }
     };
 
@@ -152,8 +158,9 @@ public class LoginFragment extends Fragment implements AdapterView.OnItemSelecte
             if (!userMail.isEmpty() && !userPassword.isEmpty()) {
                 progressDialog.setMessage("Logging in. Please wait...");
                 progressDialog.show();
-                firebaseAuth.signInWithEmailAndPassword(userMail, userPassword).addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
+                firebaseAuth
+                        .signInWithEmailAndPassword(userMail, userPassword)
+                        .addOnSuccessListener(task -> {
                         String uid = firebaseAuth.getCurrentUser().getUid();
                         //Log.e("user", userid);
 
@@ -173,26 +180,29 @@ public class LoginFragment extends Fragment implements AdapterView.OnItemSelecte
                                 //Log.e("prefs are", pref.getAll().toString());
                                 //Log.e("user is", documentSnapshot.toString());
                                 loginProgress();
-                            } else {
-                                Intent loginFailed = new Intent(LoginFragment.this.getContext(), LoginFragment.class);
+                            } else if (!task1.isSuccessful()) {
+                                //Intent loginFailed = new Intent(LoginFragment.this.getContext(), LoginFragment.class);
                                 Toast.makeText(getContext(), task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                 progressDialog.dismiss();
-                                startActivity(loginFailed);
+                                //startActivity(loginFailed);
                             }
                         });
-
-                    } else {
-                        ATTEMPTS--;
-                        while (ATTEMPTS > 0) {
-                            Toast.makeText(getContext(), "Error Logging in! Verify your details.\nAttempts remaining: " + ATTEMPTS, Toast.LENGTH_LONG).show();
-                            progressDialog.dismiss();
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                            ATTEMPTS--;
+                            if (ATTEMPTS > 0) {
+                                Toast.makeText(getContext(), e.getMessage() + "\nAttempts remaining: " + ATTEMPTS, Toast.LENGTH_LONG).show();
+                                progressDialog.dismiss();
+                            }
+                            if (ATTEMPTS <= 0) {
+                                Toast.makeText(getContext(), "Please Reset Your Password.", Toast.LENGTH_LONG).show();
+                                progressDialog.dismiss();
+                                logDetailsLL.setVisibility(View.GONE);
+                                ATTEMPTS = 3;
+                            }
                         }
-                        if (ATTEMPTS <= 0) {
-                            Toast.makeText(getContext(), "Please Reset Your Password.", Toast.LENGTH_LONG).show();
-                            progressDialog.dismiss();
-                            logDetailsLL.setVisibility(View.GONE);
-                        }
-                    }
                 });
             }
         }

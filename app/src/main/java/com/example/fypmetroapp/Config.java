@@ -22,8 +22,8 @@ public class Config {
     public static final String EXISTS = "EXISTS";
     public static final String CHECK = "CHECK";
     public static final String NEW = "NEW";
-    public static final String STATION_TYPE_BUS = "B";
-    public static final String STATION_TYPE_LRT = "L";
+    public static final String STATION_TYPE_BUS = "BUS";
+    public static final String STATION_TYPE_LRT = "LRT";
     public static final int MODE_PRIVATE = 0;
     public static final int ACCURACY_DISTANCE = 15;
     public static final int ALLOWED_PROXIMITY = 35;

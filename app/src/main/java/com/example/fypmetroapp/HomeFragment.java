@@ -2,10 +2,12 @@ package com.example.fypmetroapp;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -15,12 +17,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.format.Time;
-import android.transition.Transition;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,15 +46,14 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
@@ -62,14 +65,14 @@ import com.robinhood.ticker.TickerUtils;
 import com.robinhood.ticker.TickerView;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
+import static android.graphics.Color.TRANSPARENT;
 
 public class HomeFragment extends Fragment {
 
@@ -85,11 +88,19 @@ public class HomeFragment extends Fragment {
     LocationCallback locationCallback;
     GeoFire userGeoFire, stationGeoFire;
     Boolean requestingLocationUpdates = false;
-    static TextView status, proximity, stationText, occupancy, statType, nextArrival;
+    static TextView status, proximity, occupancy, statType;
     String user_id;
     static Button begin, stop;
-    static TickerView tickerView;
+    static TickerView next_arrivalTicker, cur_stationTicker, progress_ticker;
     UserUpdates userUpdates;
+    public static Dialog stationLegendReminder;
+    SharedPreferences preferences;
+    String role;
+    ProgressBar loaderBar;
+    LinearLayout loader;
+    LinearLayout main;
+    private int progressStatus = 0;
+    private Handler progress_handler = new Handler();
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -112,79 +123,186 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         //locText = getView().findViewById(R.id.locText);
 
+        // initiate progress bar and start button
+        loaderBar = (ProgressBar) getView().findViewById(R.id.loadBar);
+        loaderBar.setMax(100); //15000ms is 15s
+        loader = getView().findViewById(R.id.loaderLL);
+        main = getView().findViewById(R.id.content_home);
+        progress_ticker = getView().findViewById(R.id.progress_ticker);
+        progress_ticker.setCharacterLists(TickerUtils.provideNumberList());
+
         //on load pan camera to user's location
         LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
         Criteria mCriteria = new Criteria();
         String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
         occupancy = getView().findViewById(R.id.occupancy);
         statType = getView().findViewById(R.id.stationType);
-        //nextArrival = getView().findViewById(R.id.nextArrival);
         status = getView().findViewById(R.id.currentStatus);
-        stationText = getView().findViewById(R.id.curStation);
         proximity = getView().findViewById(R.id.proximity);
         begin = getView().findViewById(R.id.begin_btn);
         stop = getView().findViewById(R.id.stop_btn);
 
-        tickerView = getView().findViewById(R.id.nextArrival);
-        tickerView.setCharacterLists(TickerUtils.provideNumberList());
+        cur_stationTicker = getView().findViewById(R.id.curStation);
+        cur_stationTicker.setCharacterLists(TickerUtils.provideAlphabeticalList());
+        next_arrivalTicker = getView().findViewById(R.id.nextArrival);
+        next_arrivalTicker.setCharacterLists(TickerUtils.provideNumberList());
 
         proximity.setText("Waiting to");
-        stationText.setText("Receive Updates...");
+        cur_stationTicker.setText("Receive Updates...");
         status.setText("Waiting to Receive Updates...");
         occupancy.setText("Waiting to Receive Updates...");
         statType.setText("Waiting to");
-        tickerView.setText("Receive Updates...");
+        next_arrivalTicker.setText("Receive Updates...");
 
         statType.setTextColor(Color.BLACK);
-        //nextArrival.setTextColor(Color.BLACK);
         status.setTextColor(Color.BLACK);
         occupancy.setTextColor(Color.BLACK);
         proximity.setTextColor(Color.BLACK);
-        stationText.setTextColor(Color.BLACK);
+        cur_stationTicker.setTextColor(Color.BLUE);
 
         begin.setOnClickListener(track_buttons);
         stop.setOnClickListener(track_buttons);
 
-        mLocation = manager.getLastKnownLocation(bestProvider);
-        if (mLocation != null) {
-            userUpdates.location = mLocation;
-            userUpdates.latLngLocation = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-            //LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-            //String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
-            //locText.setText(userLocation);
+        preferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        //Log.e("prefs are", preferences.getAll().toString());
+        stationLegendReminder = new Dialog(getContext());
+
+        boolean legend_seen = preferences.getBoolean("legend_seen", false);
+        role = preferences.getString("role", null);
+
+        if (!role.equals("Driver")) {
+            if (legend_seen == false)
+                showStationsLegend();
         }
 
-        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-        String role = pref.getString("role", null);
-
-        Dexter.withActivity(getActivity())
-                .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                .withListener(new PermissionListener() {
-                    @Override
-                    public void onPermissionGranted(PermissionGrantedResponse response) {
-                        if (role.equals("User")) {
-                            buildLocationRequest();
-                            buildLocationCallback();
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                new Thread(new Runnable() {
+                    public void run() {
+                        while (progressStatus < 100) {
+                            progressStatus += 10;
+                            // Update the progress bar and display the
+                            //current value in the text view
+                            progress_handler.post(new Runnable() {
+                                public void run() {
+                                    loaderBar.setProgress(progressStatus);
+                                    progress_ticker.setText(progressStatus + "/"+ loaderBar.getMax());
+                                }
+                            });
+                            try {
+                                // Sleep for 200 milliseconds.
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                         }
-                        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
-                        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
-                                .findFragmentById(R.id.home_map_frags);
-                        mapFragment.getMapAsync(HomeFragment.this::onMapReady);
-                        GeoFireConfig();
-                        GeoFireConfigStations();
+                        loaderBar.setVisibility(View.INVISIBLE);
+                        loaderBar.clearAnimation();
+                        loader.setVisibility(View.INVISIBLE);
                     }
+                }).start();
 
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
                     @Override
-                    public void onPermissionDenied(PermissionDeniedResponse response) {
-                        Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
+                    public void run() {
+                        main.setVisibility(View.VISIBLE);
+                        try {
+                            mLocation = manager.getLastKnownLocation(bestProvider);
+                            if (mLocation != null) {
+                                userUpdates.location = mLocation;
+                                userUpdates.latLngLocation = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+                                //LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+                                //String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
+                                //locText.setText(userLocation);
+                            }
+
+                            SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+                            String role = pref.getString("role", null);
+
+                            Dexter.withActivity(getActivity())
+                                    .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    .withListener(new PermissionListener() {
+                                        @Override
+                                        public void onPermissionGranted(PermissionGrantedResponse response) {
+                                            if (role.equals("User")) {
+                                                buildLocationRequest();
+                                                buildLocationCallback();
+                                            }
+                                            fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
+                                            SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
+                                                    .findFragmentById(R.id.home_map_frags);
+                                            mapFragment.getMapAsync(HomeFragment.this::onMapReady);
+                                            GeoFireConfig();
+                                            GeoFireConfigStations();
+                                        }
+
+                                        @Override
+                                        public void onPermissionDenied(PermissionDeniedResponse response) {
+                                            Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
+                                        }
+
+                                        @Override
+                                        public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+
+                                        }
+                                    }).check();
+
+
+                            Map<String, Object> times = new HashMap<>();
+                            times.put("1", "07:10");
+                            times.put("2", "07:20");
+                            times.put("3", "07:30");
+                            times.put("4", "07:40");
+                            times.put("5", "07:50");
+                            times.put("6", "08:00");
+                            times.put("8", "08:10");
+                            times.put("9", "08:20");
+                            times.put("10", "08:30");
+                            times.put("11", "08:40");
+                            FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                            DocumentReference ref = firebaseFirestore
+                                    .collection("stationdetails")
+                                    .document("arrivals")
+                                    .collection("BUS")
+                                    .document("Reduit")
+                                    .collection("153")
+                                    .document();
+
+                            ref.set(times).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Toast.makeText(getContext(), "Added 163 times!", Toast.LENGTH_SHORT).show();
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        } catch (Exception e) {
+                            Log.e("exc", e.getMessage());
+                        }
                     }
+                }, 10000);
+            }
+        });
+    }
 
-                    @Override
-                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+    @SuppressLint("NewApi")
+    private void showStationsLegend () {
+        stationLegendReminder.setContentView(R.layout.station_legend_reminder);
+        stationLegendReminder.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
+        ImageButton closeDialog = stationLegendReminder.findViewById(R.id.dialog_closeX);
+        stationLegendReminder.show();
 
-                    }
-                }).check();
-
+        closeDialog.setOnClickListener(v -> {
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean("legend_seen", true);
+            editor.apply();
+            stationLegendReminder.dismiss();
+        });
     }
 
     View.OnClickListener track_buttons = new View.OnClickListener() {
@@ -193,6 +311,7 @@ public class HomeFragment extends Fragment {
             switch (v.getId()) {
                 case R.id.begin_btn:
                     userUpdates.tracking = true;
+                    initOccupancy();
                     initTracking();
                     break;
                 case R.id.stop_btn:
@@ -208,13 +327,13 @@ public class HomeFragment extends Fragment {
         stop.setVisibility(View.INVISIBLE);
         if (userUpdates.tracking == false) {
             proximity.setText("Waiting to");
-            stationText.setText("Receive Updates...");
+            cur_stationTicker.setText("Receive Updates...");
             status.setText("Waiting to Receive Updates...");
             occupancy.setText("Waiting to Receive Updates...");
             status.setTextColor(Color.BLACK);
             occupancy.setTextColor(Color.BLACK);
             proximity.setTextColor(Color.BLACK);
-            stationText.setTextColor(Color.BLACK);
+            cur_stationTicker.setTextColor(Color.BLACK);
         }
     }
 
@@ -244,8 +363,8 @@ public class HomeFragment extends Fragment {
     public void initTracking() {
         begin.setVisibility(View.INVISIBLE);
         stop.setVisibility(View.VISIBLE);
-        //Log.e("loc", UserUpdates.nearest_station.name);
-        //getCount(userUpdates.getNearest_station().name);
+        //Log.e("loc", userUpdates.nearest_station.name);
+        getCount(userUpdates.getNearest_station().name);
 
         Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
@@ -260,8 +379,8 @@ public class HomeFragment extends Fragment {
                             int time = userUpdates.distance_to_nearest_station / 6;
                             proximity.setText("~ " + time + " min(s) from");
                             proximity.setTextColor(Color.GREEN);
-                            stationText.setText(userUpdates.nearest_station.name);
-                            stationText.setTextColor(Color.BLUE);
+                            cur_stationTicker.setText(userUpdates.nearest_station.name);
+                            cur_stationTicker.setTextColor(Color.BLUE);
 
                             if (userUpdates.cur_stat_occupancy >= 3.0) {
                                 occupancy.setText("Very Active");
@@ -288,7 +407,7 @@ public class HomeFragment extends Fragment {
                                 int arrives_in = (int) (difference / 60000);
                                 Log.e("next arrives in", String.valueOf(arrives_in));
                                 statType.setText(userUpdates.getNearest_station().type);
-                                tickerView.setText(arrives_in + " minute(s)");
+                                next_arrivalTicker.setText(arrives_in + " minute(s)");
                                 //Log.e("next", userUpdates.getCur_stat_next());
                                 //Log.e("time", String.valueOf(current_time.format("%k:%M")));
 
@@ -313,8 +432,8 @@ public class HomeFragment extends Fragment {
         ref.get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 DocumentSnapshot snapshot = task.getResult();
-                userUpdates.cur_stat_next = (snapshot.getString("next"));
-                userUpdates.cur_stat_after = (snapshot.getString("after"));
+                //userUpdates.cur_stat_next = (snapshot.getString("next"));
+                //userUpdates.cur_stat_after = (snapshot.getString("after"));
             }
         });
         return null;

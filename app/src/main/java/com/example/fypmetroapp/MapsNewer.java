@@ -1971,15 +1971,14 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     @Override
     public void onDataEntered(DataSnapshot dataSnapshot, GeoLocation location) {
         //sendNotif("LRTMate App", String.format("%s entered the station.", dataSnapshot.getKey()));
+        LatLng loc = new LatLng(location.latitude, location.longitude);
         if (location != null) {
-            Log.e("not", "null");
-            if (location.equals(location)) {
-                Log.e("its", "same");
-                for (StationFence fence: foundfences)
-                    Log.e("fence", fence.toString());
-            } else {
-                Log.e("not", "same");
+            if (!loc.equals(curLocation)) {
+                //Log.e("entered new", dataSnapshot.getKey());
                 entered_Station(location);
+            } else {
+                Log.e("entered", "same");
+                //entered_Station(location);
             }
         }
     }
@@ -2070,6 +2069,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                         userUpdates.setNearest_station(station);
                         userUpdates.setDistance_to_nearest_station(dist_to);
                         UserUpdates.distance_to_nearest_station = dist_to;
+                        //Log.e("set poss", "station");
 
                         if (stationFence.stationName.equals(station.name)) {
                             newStation = station.name;
@@ -2093,6 +2093,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                         userUpdates.setNearest_station(station);
                         userUpdates.setDistance_to_nearest_station(dist_to);
                         UserUpdates.distance_to_nearest_station = dist_to;
+                        //Log.e("set", "station");
 
                         if (stationFence.stationName.equals(station.name)) {
                             newStation = station.name;
@@ -2140,8 +2141,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                     int ran = 1;
                     int run = 2;
                     while (ran < run) {
-                        UserUpdates.cur_stat_occupancy = document.getDouble(stationName);
-                        Log.e("occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
+                        HomeFragment.initOccupancy();
+                        Log.e("now occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
                         ran++;
                     }
                 } else {

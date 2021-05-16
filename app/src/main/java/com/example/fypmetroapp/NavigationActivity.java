@@ -56,7 +56,7 @@ public class NavigationActivity extends AppCompatActivity {
     public static TextView navname, navid;
     SharedPreferences preferences;
     public static Activity activity;
-    Dialog stationLegendReminder;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,8 +74,8 @@ public class NavigationActivity extends AppCompatActivity {
         BottomNavigationView navigation = findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
+        fm.beginTransaction().add(R.id.main_container, mapsNewer, "1").hide(mapsNewer).commit();
         fm.beginTransaction().add(R.id.main_container, homeFragment, "1").commit();
-        fm.beginTransaction().add(R.id.main_container, mapsNewer, "2").hide(mapsNewer).commit();
         fm.beginTransaction().add(R.id.main_container, userprefs, "5").hide(userprefs).commit();
         fm.beginTransaction().add(R.id.main_container, ticketFragment, "3").hide(ticketFragment).commit();
         fm.beginTransaction().add(R.id.main_container, profileFragment, "4").hide(profileFragment).commit();
@@ -83,33 +83,7 @@ public class NavigationActivity extends AppCompatActivity {
 
         //buggy switching from launch fix
         active = homeFragment;
-
-        preferences = getApplicationContext().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-        //Log.e("prefs are", preferences.getAll().toString());
-        stationLegendReminder = new Dialog(this);
-
-        boolean legend_seen = preferences.getBoolean("legend_seen", false);
-        role = preferences.getString("role", null);
-
-        if (!role.equals("Driver")) {
-            if (legend_seen == false)
-                showStationsLegend();
-        }
-    }
-
-    @SuppressLint("NewApi")
-    private void showStationsLegend () {
-        stationLegendReminder.setContentView(R.layout.station_legend_reminder);
-        stationLegendReminder.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
-        ImageButton closeDialog = stationLegendReminder.findViewById(R.id.dialog_closeX);
-        stationLegendReminder.show();
-
-        closeDialog.setOnClickListener(v -> {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean("legend_seen", true);
-            editor.apply();
-            stationLegendReminder.dismiss();
-        });
+        preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
     }
 
     @SuppressLint("NewApi")
@@ -120,7 +94,7 @@ public class NavigationActivity extends AppCompatActivity {
         dl = findViewById(R.id.drawerLayout);
         showButton = findViewById(R.id.bt_menu_show);
         legendButton = findViewById(R.id.legend_show);
-        legendButton.setOnClickListener(v -> showStationsLegend());
+        legendButton.setOnClickListener(v -> HomeFragment.stationLegendReminder.show());
         navname = findViewById(R.id.nameToolbar);
         navid = findViewById(R.id.IDToolbar);
         nv = findViewById(R.id.left_menu);
