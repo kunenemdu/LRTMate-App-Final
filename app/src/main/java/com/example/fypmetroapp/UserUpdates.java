@@ -11,10 +11,11 @@ public class UserUpdates {
     public static Location location;
     public static Location new_location;
     public static LatLng latLngLocation;
-    public static boolean updatedOcc;
+    public static boolean updatedOcc = false;
     public static LatLng latLngDestination;
     public static boolean tracking;
     public static int distance_to_nearest_station;
+    public static int distance_to_prev_station;
     public static Station nearest_station;
     public static ArrayList<Station> _proximity_stations;
     public static double cur_stat_occupancy;
@@ -23,6 +24,23 @@ public class UserUpdates {
     public String user_time;
     public int arrives_in;
     public static ArrayList<StationFence> foundFences;
+    public static Station previous_stat;
+
+    public int getDistance_to_prev_station() {
+        return distance_to_prev_station;
+    }
+
+    public void setDistance_to_prev_station(int distance_to_prev_station) {
+        UserUpdates.distance_to_prev_station = distance_to_prev_station;
+    }
+
+    public Station getPrevious_stat() {
+        return previous_stat;
+    }
+
+    public void setPrevious_stat(Station previous_stat) {
+        UserUpdates.previous_stat = previous_stat;
+    }
 
     public static ArrayList<StationFence> getFoundFences() {
         return foundFences;

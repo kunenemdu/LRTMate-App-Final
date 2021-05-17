@@ -12,12 +12,14 @@ import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.format.Time;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +27,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TableLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,27 +37,27 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.firebase.geofire.GeoFire;
-import com.firebase.geofire.GeoLocation;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
+import com.google.android.flexbox.FlexboxLayout;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -64,31 +67,41 @@ import com.karumi.dexter.listener.single.PermissionListener;
 import com.robinhood.ticker.TickerUtils;
 import com.robinhood.ticker.TickerView;
 
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.Temporal;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import static android.graphics.Color.TRANSPARENT;
 
-public class HomeFragment extends Fragment {
+public class HomeFragment extends Fragment implements LocationListener {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private static final String TAG = HomeFragment.class.getSimpleName();
     //TextView locText;
     Location mLocation;
-    LatLng mLocLatLng;
+    MapsNewer mapsNewer = new MapsNewer();
+    LatLng currentLatLngLocation;
     GoogleMap gMap;
     GlobalProperties properties = new GlobalProperties();
-    LocationRequest locationRequest;
-    FusedLocationProviderClient fusedLocationProviderClient;
     DatabaseReference userRef, stationRef;
-    LocationCallback locationCallback;
     GeoFire userGeoFire, stationGeoFire;
-    Boolean requestingLocationUpdates = false;
-    static TextView status, proximity, occupancy, statType;
+    static TextView status, proximity, occupancy, statType, init;
     String user_id;
     static Button begin, stop;
     static TickerView next_arrivalTicker, cur_stationTicker, progress_ticker;
@@ -97,10 +110,15 @@ public class HomeFragment extends Fragment {
     SharedPreferences preferences;
     String role;
     ProgressBar loaderBar;
-    LinearLayout loader;
-    LinearLayout main;
+    LinearLayout loader, main;
     private int progressStatus = 0;
     private Handler progress_handler = new Handler();
+    private LocationManager locationManager;
+    private String provider;
+    Dialog buses_at_station;
+    TextView txtBusName;
+    boolean selected_bus = false;
+    final Handler timeHandler = new Handler(Looper.getMainLooper());
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -109,11 +127,15 @@ public class HomeFragment extends Fragment {
         return root;
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
         user_id = firebaseAuth.getCurrentUser().getUid();
         userUpdates = new UserUpdates();
+        this.locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, false);
         super.onCreate(savedInstanceState);
     }
 
@@ -130,6 +152,7 @@ public class HomeFragment extends Fragment {
         main = getView().findViewById(R.id.content_home);
         progress_ticker = getView().findViewById(R.id.progress_ticker);
         progress_ticker.setCharacterLists(TickerUtils.provideNumberList());
+        buses_at_station = new Dialog(getContext());
 
         //on load pan camera to user's location
         LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
@@ -141,6 +164,7 @@ public class HomeFragment extends Fragment {
         proximity = getView().findViewById(R.id.proximity);
         begin = getView().findViewById(R.id.begin_btn);
         stop = getView().findViewById(R.id.stop_btn);
+        init = getView().findViewById(R.id.init);
 
         cur_stationTicker = getView().findViewById(R.id.curStation);
         cur_stationTicker.setCharacterLists(TickerUtils.provideAlphabeticalList());
@@ -167,32 +191,26 @@ public class HomeFragment extends Fragment {
         //Log.e("prefs are", preferences.getAll().toString());
         stationLegendReminder = new Dialog(getContext());
 
-        boolean legend_seen = preferences.getBoolean("legend_seen", false);
-        role = preferences.getString("role", null);
-
-        if (!role.equals("Driver")) {
-            if (legend_seen == false)
-                showStationsLegend();
-        }
-
-        getActivity().runOnUiThread(new Runnable() {
+        progress_handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 new Thread(new Runnable() {
                     public void run() {
                         while (progressStatus < 100) {
-                            progressStatus += 10;
+                            progressStatus += 5;
                             // Update the progress bar and display the
                             //current value in the text view
                             progress_handler.post(new Runnable() {
                                 public void run() {
                                     loaderBar.setProgress(progressStatus);
                                     progress_ticker.setText(progressStatus + "/"+ loaderBar.getMax());
+                                    if (progressStatus == 80)
+                                        init.setText("Finishing...");
                                 }
                             });
                             try {
                                 // Sleep for 200 milliseconds.
-                                Thread.sleep(1000);
+                                Thread.sleep(200);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -202,6 +220,20 @@ public class HomeFragment extends Fragment {
                         loader.setVisibility(View.INVISIBLE);
                     }
                 }).start();
+                Handler legend = new Handler();
+                legend.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        boolean legend_seen = preferences.getBoolean("legend_seen", false);
+                        role = preferences.getString("role", null);
+                        if (!role.equals("User")) {
+                            if (legend_seen == false)
+                                showStationsLegend(true);
+                            else
+                                showStationsLegend(false);
+                        }
+                    }
+                }, 8000);
 
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -209,10 +241,9 @@ public class HomeFragment extends Fragment {
                     public void run() {
                         main.setVisibility(View.VISIBLE);
                         try {
-                            mLocation = manager.getLastKnownLocation(bestProvider);
+                            mLocation = manager.getLastKnownLocation(provider);
                             if (mLocation != null) {
-                                userUpdates.location = mLocation;
-                                userUpdates.latLngLocation = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+
                                 //LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
                                 //String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
                                 //locText.setText(userLocation);
@@ -227,10 +258,8 @@ public class HomeFragment extends Fragment {
                                         @Override
                                         public void onPermissionGranted(PermissionGrantedResponse response) {
                                             if (role.equals("User")) {
-                                                buildLocationRequest();
-                                                buildLocationCallback();
+
                                             }
-                                            fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
                                             SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
                                                     .findFragmentById(R.id.home_map_frags);
                                             mapFragment.getMapAsync(HomeFragment.this::onMapReady);
@@ -248,54 +277,24 @@ public class HomeFragment extends Fragment {
 
                                         }
                                     }).check();
-
-
-                            Map<String, Object> times = new HashMap<>();
-                            times.put("1", "07:10");
-                            times.put("2", "07:20");
-                            times.put("3", "07:30");
-                            times.put("4", "07:40");
-                            times.put("5", "07:50");
-                            times.put("6", "08:00");
-                            times.put("8", "08:10");
-                            times.put("9", "08:20");
-                            times.put("10", "08:30");
-                            times.put("11", "08:40");
-                            FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                            DocumentReference ref = firebaseFirestore
-                                    .collection("stationdetails")
-                                    .document("arrivals")
-                                    .collection("BUS")
-                                    .document("Reduit")
-                                    .collection("153")
-                                    .document();
-
-                            ref.set(times).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void aVoid) {
-                                    Toast.makeText(getContext(), "Added 163 times!", Toast.LENGTH_SHORT).show();
-                                }
-                            }).addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-                                }
-                            });
                         } catch (Exception e) {
                             Log.e("exc", e.getMessage());
                         }
                     }
                 }, 10000);
             }
-        });
+        }, 5000);
     }
 
     @SuppressLint("NewApi")
-    private void showStationsLegend () {
+    private void showStationsLegend (boolean show) {
         stationLegendReminder.setContentView(R.layout.station_legend_reminder);
         stationLegendReminder.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
         ImageButton closeDialog = stationLegendReminder.findViewById(R.id.dialog_closeX);
-        stationLegendReminder.show();
+
+        if (show == true) {
+            stationLegendReminder.show();
+        }
 
         closeDialog.setOnClickListener(v -> {
             SharedPreferences.Editor editor = preferences.edit();
@@ -310,12 +309,11 @@ public class HomeFragment extends Fragment {
         public void onClick(View v) {
             switch (v.getId()) {
                 case R.id.begin_btn:
-                    userUpdates.tracking = true;
-                    initOccupancy();
+                    userUpdates.setTracking(true);
                     initTracking();
                     break;
                 case R.id.stop_btn:
-                    userUpdates.tracking = false;
+                    userUpdates.setTracking(false);
                     stopTracking();
                     break;
             }
@@ -337,106 +335,198 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    public static void initOccupancy () {
-        if (UserUpdates.tracking == true) {
-            if (UserUpdates.nearest_station != null) {
-                if (UserUpdates.cur_stat_occupancy != 0) {
-                    if (UserUpdates.cur_stat_occupancy >= 3.0) {
-                        occupancy.setText("Very Active");
-                        occupancy.setTextColor(Color.RED);
-                    }
-                    else if (UserUpdates.cur_stat_occupancy >= 2.0) {
-                        occupancy.setText("Active");
-                        int orange = Color.rgb(255, 165, 0);
-                        occupancy.setTextColor(orange);
-                    }
-                    else {
-                        occupancy.setText("Quiet");
-                        occupancy.setTextColor(Color.GREEN);
-                    }
-                }
-            }
-        }
-    }
-
     @SuppressLint("SetTextI18n")
     public void initTracking() {
         begin.setVisibility(View.INVISIBLE);
         stop.setVisibility(View.VISIBLE);
         //Log.e("loc", userUpdates.nearest_station.name);
-        getCount(userUpdates.getNearest_station().name);
-
+        ShowBusesDialog(userUpdates.getNearest_station());
         Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                handler.postDelayed(this, 5000);
-                if (userUpdates.tracking == true) {
-                    if (userUpdates.nearest_station != null) {
-                        if (userUpdates.cur_stat_occupancy != 0) {
-                            //time = d/s [avg walking speed humans = 6kph]
-                            //TODO: CALCULATE THIS USING USER'S AVG SPEED IF ON FOOT/DRIVING/CYCLING
-                            int time = userUpdates.distance_to_nearest_station / 6;
-                            proximity.setText("~ " + time + " min(s) from");
-                            proximity.setTextColor(Color.GREEN);
-                            cur_stationTicker.setText(userUpdates.nearest_station.name);
-                            cur_stationTicker.setTextColor(Color.BLUE);
+                handler.postDelayed(this, 2000);
+                //time = d/s [avg walking speed humans = 6kph]
+                //TODO: CALCULATE THIS USING USER'S AVG SPEED IF ON FOOT/DRIVING/CYCLING
+                int time = userUpdates.distance_to_nearest_station / 6;
+                proximity.setText("~ " + time + " min(s) from");
+                proximity.setTextColor(Color.GREEN);
+                cur_stationTicker.setText(userUpdates.nearest_station.name);
+                cur_stationTicker.setTextColor(Color.BLUE);
 
-                            if (userUpdates.cur_stat_occupancy >= 3.0) {
-                                occupancy.setText("Very Active");
-                                occupancy.setTextColor(Color.RED);
-                            }
-                            else if (userUpdates.cur_stat_occupancy >= 2.0) {
-                                occupancy.setText("Active");
-                                int orange = Color.rgb(255, 165, 0);
-                                occupancy.setTextColor(orange);
-                            }
-                            else {
-                                occupancy.setText("Quiet");
-                                occupancy.setTextColor(Color.GREEN);
-                            }
+                if (userUpdates.cur_stat_occupancy >= 3.0) {
+                    occupancy.setText("Very Active");
+                    occupancy.setTextColor(Color.RED);
+                }
+                else if (userUpdates.cur_stat_occupancy >= 2.0) {
+                    occupancy.setText("Active");
+                    int orange = Color.rgb(255, 165, 0);
+                    occupancy.setTextColor(orange);
+                }
+                else {
+                    occupancy.setText("Quiet");
+                    occupancy.setTextColor(Color.GREEN);
+                }
 
-                            try {
-                                Time current_time = new Time(Time.getCurrentTimezone());
-                                current_time.setToNow();
-                                SimpleDateFormat format = new SimpleDateFormat("HH:mm");
-                                Date date1 = format.parse(current_time.format("%k:%M"));
-                                String next = userUpdates.getCur_stat_next();
-                                Date date2 = format.parse(next);
-                                long difference = date2.getTime() - date1.getTime();
-                                int arrives_in = (int) (difference / 60000);
-                                Log.e("next arrives in", String.valueOf(arrives_in));
-                                statType.setText(userUpdates.getNearest_station().type);
-                                next_arrivalTicker.setText(arrives_in + " minute(s)");
-                                //Log.e("next", userUpdates.getCur_stat_next());
-                                //Log.e("time", String.valueOf(current_time.format("%k:%M")));
+                try {
+                    Time current_time = new Time(Time.getCurrentTimezone());
+                    current_time.setToNow();
+                    SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+                    Date date1 = format.parse(current_time.format("%k:%M"));
+                    String next = userUpdates.getCur_stat_next();
+                    Date date2 = format.parse(next);
+                    long difference = date2.getTime() - date1.getTime();
+                    int arrives_in = (int) (difference / 60000);
+                    Log.e("next arrives in", String.valueOf(arrives_in));
+                    statType.setText(userUpdates.getNearest_station().type);
+                    next_arrivalTicker.setText(arrives_in + " minute(s)");
+                    //Log.e("next", userUpdates.getCur_stat_next());
+                    //Log.e("time", String.valueOf(current_time.format("%k:%M")));
 
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-        }, 5000);
+        }, 2000);
     }
 
-    private Task<Integer> getCount(String stationName) {
+    private Task<Integer> getTimes(Station station, String bus) {
         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
         DocumentReference ref = firebaseFirestore
                 .collection("stationdetails")
                 .document("arrivals")
-                .collection(userUpdates.nearest_station.type)
-                .document(stationName);
+                .collection(station.type)
+                .document(station.name)
+                .collection(bus)
+                .document("times");
 
         ref.get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 DocumentSnapshot snapshot = task.getResult();
-                //userUpdates.cur_stat_next = (snapshot.getString("next"));
-                //userUpdates.cur_stat_after = (snapshot.getString("after"));
+                ArrayList<String> times_reverse_order = new ArrayList<>();
+                ArrayList<String> times_normal_order = new ArrayList<>();
+                SimpleDateFormat dateFormat = new SimpleDateFormat("hmm");
+                SimpleDateFormat dateFormat2 = new SimpleDateFormat("hh:mm");
+                String time;
+
+                for (int i = 5; i >= 0; i--) {
+                    time = snapshot.getString(String.valueOf(i));
+                    try {
+                        Date date = dateFormat.parse(time);
+                        String out = dateFormat2.format(date);
+                        times_reverse_order.add(out);
+                    } catch (ParseException e) {
+                        Log.e("exception", e.getMessage());
+                    }
+                }
+
+                for (int i = 0; i < 6; i++) {
+                    time = snapshot.getString(String.valueOf(i));
+                    try {
+                        Date date = dateFormat.parse(time);
+                        String out = dateFormat2.format(date);
+                        times_normal_order.add(out);
+                    } catch (ParseException e) {
+                        Log.e("exception", e.getMessage());
+                    }
+                }
+
+                next_arrival(times_reverse_order, times_normal_order);
+
+                //just change it to Bus;
+                statType.setText(station.type);
+                //next_arrivalTicker.setText("11:00am");
+            }
+        });
+
+        ref.addSnapshotListener(new EventListener<DocumentSnapshot>() {
+            @Override
+            public void onEvent(@Nullable DocumentSnapshot value, @Nullable FirebaseFirestoreException error) {
+                DocumentSnapshot snapshot = value;
+                ArrayList<String> times_reverse_order = new ArrayList<>();
+                ArrayList<String> times_normal_order = new ArrayList<>();
+                SimpleDateFormat dateFormat = new SimpleDateFormat("hmm");
+                SimpleDateFormat dateFormat2 = new SimpleDateFormat("hh:mm");
+                String time;
+
+                for (int i = 5; i >= 0; i--) {
+                    time = snapshot.getString(String.valueOf(i));
+                    try {
+                        Date date = dateFormat.parse(time);
+                        String out = dateFormat2.format(date);
+                        times_reverse_order.add(out);
+                    } catch (ParseException e) {
+                        Log.e("exception", e.getMessage());
+                    }
+                }
+
+                for (int i = 0; i < 6; i++) {
+                    time = snapshot.getString(String.valueOf(i));
+                    try {
+                        Date date = dateFormat.parse(time);
+                        String out = dateFormat2.format(date);
+                        times_normal_order.add(out);
+                    } catch (ParseException e) {
+                        Log.e("exception", e.getMessage());
+                    }
+                }
+
+                next_arrival(times_reverse_order, times_normal_order);
             }
         });
         return null;
+    }
+
+    @SuppressLint("NewApi")
+    private int next_arrival (ArrayList<String> times_reversed, ArrayList<String> times_normal) {
+        timeHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm");
+                LocalTime now = LocalTime.now();
+                SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
+                String out;
+                Date next1 = new Date();
+
+                //loop forward array
+                for (String time: times_reversed) {
+                    try {
+                        Date user = parser.parse(dtf.format(now));
+                        Date next = parser.parse(time);
+                        if (user.after(next)) {
+                            //loop backwards array
+                            for (String time1: times_normal) {
+                                next1 = parser.parse(time1);
+                                if (next.before(next1)) {
+                                    out = parser.format(next1);
+                                    Log.e("next at", out);
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    } catch (ParseException e) {
+                        Log.e("error", e.getMessage());
+                    }
+                }
+
+                LocalTime date = next1.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
+                Duration timeElapsed = Duration.between(now, date);
+                Log.e("diff", "Time taken: "+ timeElapsed.toMinutes() +" minutes");
+                if (timeElapsed.toMinutes() == 0) {
+                    next_arrivalTicker.setText("Arriving...");
+                } else
+                    next_arrivalTicker.setText("< " + timeElapsed.toMinutes() + " minutes");
+
+                timeHandler.postDelayed(this, 15000);
+            }
+        }, 10);
+        return 1;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 
     public static String getAddress(Context context, double LATITUDE, double LONGITUDE) {
@@ -475,55 +565,6 @@ public class HomeFragment extends Fragment {
         stationGeoFire = new GeoFire(stationRef);
     }
 
-    private void buildLocationCallback() {
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                gMap = properties.getgMap();
-                if (gMap != null) {
-                    if (user_id != null) {
-                        userGeoFire.setLocation(user_id, new GeoLocation(
-                                locationResult.getLastLocation().getLatitude(),
-                                locationResult.getLastLocation().getLongitude()));
-
-                        startLocationUpdates();
-                        LatLng currentLatLngLocation = userUpdates.latLngLocation;
-                        Location currentLocation = locationResult.getLastLocation();
-/*
-                        Log.e("home loc", currentLocation.toString());
-                        Log.e("home loc", currentLatLngLocation.toString());*/
-                        //Log.e("previous distance", String.valueOf(pre_total_distance));
-                    } else {
-                        Log.e("no", "id");
-                    }
-                } else {
-                    Log.e("maps", "failed");
-                }
-            }
-        };
-    }
-
-    private void buildLocationRequest() {
-        locationRequest = new LocationRequest();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(60000);
-        locationRequest.setFastestInterval(2500);
-        locationRequest.setSmallestDisplacement(25f);
-    }
-
-    @Override
-    public void onStop() {
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
-        super.onStop();
-    }
-
-    @SuppressLint("MissingPermission")
-    private void startLocationUpdates() {
-        fusedLocationProviderClient.requestLocationUpdates(locationRequest,
-                locationCallback,
-                Looper.getMainLooper());
-    }
-
     @SuppressLint({"ResourceType", "NewApi"})
     public void onMapReady(GoogleMap googleMap) {
         //initialise map for use
@@ -559,10 +600,6 @@ public class HomeFragment extends Fragment {
             gMap.setLatLngBoundsForCameraTarget(mauritius);
 
         });
-
-        if (fusedLocationProviderClient != null) {
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
-        }
     }
 
     @SuppressLint("MissingPermission")
@@ -591,6 +628,105 @@ public class HomeFragment extends Fragment {
             // Permission to access the location is missing. Show rationale and request permission
             PermissionUtils.requestPermission(((AppCompatActivity) getContext()), LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
+        }
+    }
+
+    @Override
+    public void onLocationChanged(@NonNull Location location) {
+        Log.e(TAG, "GPS LocationChanged");
+        double lat = location.getLatitude();
+        double lng = location.getLongitude();
+        Log.e(TAG, "Received GPS request for " + (lat) + "," + (lng));
+        try {
+            ShowBusesDialog(userUpdates.getNearest_station());
+        } catch (Exception e) {
+            Log.e("stats", "null");
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    @Override
+    public void onResume() {
+        locationManager.requestLocationUpdates(provider, 500, 15, this);
+        super.onResume();
+    }
+
+    @Override
+    public void onStop() {
+        timeHandler.removeCallbacks(new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        });
+        super.onStop();
+    }
+
+    private void ShowBusesDialog(Station station) {
+        buses_at_station.setContentView(R.layout.choose_bus_dialog);
+        txtBusName = buses_at_station.findViewById(R.id.txtBusStation_home);
+        txtBusName.setText(station.name);
+        buses_at_station.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
+        buses_at_station.show();
+        Extract_BUS_Data(station);
+        //TableLayout buses = buses_at_station.findViewById(R.id.buses_at_station_home);
+        //buses.removeAllViews();
+    }
+
+    public void Extract_BUS_Data(@NotNull Station station) {
+        String getScheduleURL = "https://metromobile.000webhostapp.com/bus_stationLookUp.php?statName=" + station.name;
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, getScheduleURL, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                showJSONS_BUSES(response);
+            }
+        }, error -> {
+
+        });
+        RequestQueue requestQueue = Volley.newRequestQueue(getContext());
+        requestQueue.add(stringRequest);
+    }
+
+    @SuppressLint({"NewApi", "UseCompatLoadingForDrawables"})
+    private void showJSONS_BUSES(String response) {
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            JSONObject aTime = null;
+            JSONArray result = jsonObject.getJSONArray(Config.JSON_ARRAY_BUSES);
+            TableLayout table_buses = buses_at_station.findViewById(R.id.buses_at_station_home);
+
+            View inflated_buses = LayoutInflater.from(getContext()).inflate(R.layout.bus_to_inflate, table_buses, false);
+            table_buses.addView(inflated_buses);
+
+            FlexboxLayout flexboxBuses = table_buses.findViewById(R.id.flexboxBuses);
+            flexboxBuses.removeAllViews();
+
+            //show buses at station
+            for (int i = 0; i < result.length(); i++) {
+                aTime = result.getJSONObject(i);
+
+                TextView tvName = new TextView(flexboxBuses.getContext());
+                tvName.setText(aTime.getString(Config.BUS_STATION_NAME));
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                layoutParams.setMargins(10,10,10,10);
+                tvName.setBackground(getContext().getResources().getDrawable(R.drawable.circle_box));
+                tvName.setTextColor(Color.WHITE);
+                tvName.setTextSize(20);
+                tvName.setGravity(Gravity.CENTER);
+                tvName.setPadding(5, 5, 5, 5);
+                tvName.setLayoutParams(layoutParams);
+
+                // now add to the Table.
+                flexboxBuses.addView(tvName);
+                tvName.setOnClickListener(v -> {
+                    selected_bus = true;
+                    String clickedBus = String.valueOf(tvName.getText());
+                    getTimes(userUpdates.getNearest_station(), clickedBus);
+                    buses_at_station.dismiss();
+                });
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
     }
 }

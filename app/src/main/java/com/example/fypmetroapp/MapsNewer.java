@@ -48,6 +48,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Criteria;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -79,7 +80,6 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
@@ -98,10 +98,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.maps.DirectionsApi;
 import com.google.maps.GeoApiContext;
 import com.google.maps.android.PolyUtil;
@@ -124,20 +122,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static android.graphics.Color.TRANSPARENT;
 import static android.graphics.Color.green;
 
-public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
+public class MapsNewer extends Fragment implements GeoQueryDataEventListener, LocationListener {
 
     //Variable Declarations
     public static GoogleMap gMap;
@@ -155,7 +150,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     private boolean permissionDenied = false;
     Marker marker;
     private Marker poiMarker;
-    LatLng curLocation;
+    LatLng curLocationLatLng;
+    Location curLocation;
     TextView textAddress;
     LinearLayout llNearbySheet;
     LinearLayout llBus_Stations_Route;
@@ -190,7 +186,6 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     public static final int overview = 0;
     CardView nearbyCardView;
     CardView drivingMode;
-    FusedLocationProviderClient fusedLocationProviderClient;
     ArrayList<Bus> allBuses;
     int distance = 0;
     GeoFire userGeoFire;
@@ -209,6 +204,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     public static List<StationFence> stationsFences;
     ArrayList<Station> _approaching;
     ArrayList<StationFence> foundfences;
+    private LocationManager locationManager;
+    private String provider;
 
     //Class Declarations
     Origin origin = new Origin();
@@ -223,57 +220,16 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         return inflater.inflate(R.layout.nearby_fragment, container, false);
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         preferences = this.getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         stationDetailsDialog = new Dialog(getContext());
         firebaseAuth = FirebaseAuth.getInstance();
-    }
-
-    private void buildLocationCallback() {
-        locationCallback = new LocationCallback() {
-            @SuppressLint("MissingPermission")
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                if (gMap != null) {
-                    uid = firebaseAuth.getCurrentUser().getUid();
-
-                    userGeoFire.setLocation(uid, new GeoLocation(
-                            locationResult.getLastLocation().getLatitude(),
-                            locationResult.getLastLocation().getLongitude()), (key, error) -> {
-                                if (userMarker != null) userMarker.remove();
-
-                                userMarker = gMap.addMarker(new MarkerOptions()
-                                        .position(new LatLng(locationResult.getLastLocation().getLatitude(),
-                                                locationResult.getLastLocation().getLongitude()))
-                                        .visible(false)
-                                        .title(uid));
-
-                                curLocation = userMarker.getPosition();
-                                userUpdates.setLatLngLocation(curLocation);
-                                userUpdates.setLocation(locationResult.getLastLocation());
-                                ShowNearestStations();
-                                gMap.animateCamera(CameraUpdateFactory
-                                        .newLatLngZoom(userMarker.getPosition(), 13.0f));
-                                initStationsFences();
-                                //area identifiers
-                                for (StationFence stationFence: getStationsFences()){
-                                    gMap.addCircle(new CircleOptions().center(stationFence.stationLocation)
-                                            .radius(30)//metres
-                                            .strokeColor(Color.BLUE)
-                                            .fillColor(0x220000FF)
-                                            .strokeWidth(1.0f));
-
-                                    //do this when user enters GeoFence
-                                    GeoQuery query = userGeoFire.queryAtLocation(
-                                            new GeoLocation(stationFence.stationLocation.latitude, stationFence.stationLocation.longitude), 0.15f);
-                                    query.addGeoQueryDataEventListener(MapsNewer.this);
-                                }
-                            });
-                }
-            }
-        };
+        this.locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, false);
+        super.onCreate(savedInstanceState);
     }
 
     private void buildDriverLocationCallback() {
@@ -301,19 +257,21 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     }
 
     private void buildLocationRequest() {
-        locationRequest = new LocationRequest();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(60000);
-        locationRequest.setFastestInterval(10000);
-        locationRequest.setSmallestDisplacement(25f);
+        locationRequest = LocationRequest
+                .create()
+                .setPriority(LocationRequest.PRIORITY_LOW_POWER)
+                .setInterval(500000)
+                .setFastestInterval(250000)
+                .setSmallestDisplacement(100f);
     }
 
     private void buildDriverLocationRequest() {
-        locationRequest = new LocationRequest();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(30000);
-        locationRequest.setFastestInterval(2500);
-        locationRequest.setSmallestDisplacement(25f);
+        locationRequest = LocationRequest
+                .create()
+                .setPriority(LocationRequest.PRIORITY_LOW_POWER)
+                .setInterval(5000)
+                .setFastestInterval(2500)
+                .setSmallestDisplacement(20f);
     }
 
     @SuppressLint({"ResourceType", "NewApi"})
@@ -503,16 +461,10 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
         addBuses();
         walkToStation();
-
-        if (fusedLocationProviderClient != null) {
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
-            ShowNearestStations();
-        }
     }
 
     @Override
     public void onStop() {
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         super.onStop();
     }
 
@@ -560,13 +512,10 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                     @Override
                     public void onPermissionGranted(PermissionGrantedResponse response) {
                         if (role.equals("Driver")) {
-                            buildDriverLocationRequest();
-                            buildDriverLocationCallback();
+
                         } else if (role.equals("User")) {
-                            buildLocationRequest();
-                            buildLocationCallback();
+
                         }
-                        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
                         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
                                 .findFragmentById(R.id.mainMapFrags);
                         mapFragment.getMapAsync(MapsNewer.this::onMapReady);
@@ -601,10 +550,10 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             LatLng statLoc = new LatLng(this_marker.getPosition().latitude, this_marker.getPosition().longitude);
             String statName = this_marker.getTitle();
             String type = (String) this_marker.getTag();
+            int distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, statLoc);
 
             //instantiate the station GeoFence
-            StationFence stationFence = new StationFence(statName, statLoc, type);
-
+            StationFence stationFence = new StationFence(statName, statLoc, type, distance);
             stationsFences.add(stationFence);
             /*FirebaseDatabase.getInstance()
                     .getReference("StationFences")
@@ -1247,8 +1196,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             allMarkers.add(LRTmarker);
             if (userUpdates.latLngLocation != null) {
                 if (userMarker != null) {
-                    curLocation = userUpdates.latLngLocation;
-                    distance = (int) SphericalUtil.computeDistanceBetween(curLocation, LRTmarker.getPosition());
+                    curLocationLatLng = userUpdates.latLngLocation;
+                    distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, LRTmarker.getPosition());
                 }
             }
 
@@ -1266,8 +1215,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             allMarkers.add(BUSmarker);
             if (userUpdates.latLngLocation != null) {
                 if (userMarker != null) {
-                    curLocation = userUpdates.latLngLocation;
-                    distance = (int) SphericalUtil.computeDistanceBetween(curLocation, BUSmarker.getPosition());
+                    curLocationLatLng = userUpdates.latLngLocation;
+                    distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, BUSmarker.getPosition());
                 }
             }
 
@@ -1360,7 +1309,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
         ImageButton closeDialog = stationDetailsDialog.findViewById(R.id.dialog_closeX);
         Extract_BUS_Data(marker);
-        TableLayout buses = getView().findViewById(R.id.buses_at_station);
+        TableLayout buses = getView().findViewById(R.id.buses_at_station_new);
         buses.removeAllViews();
         stationDetailsDialog.show();
         closeDialog.setOnClickListener(v -> stationDetailsDialog.dismiss());
@@ -1380,8 +1329,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         for (int y = 0; y < this_buses_stops.size(); y++) {
             Station station = this_buses_stops.get(y);
             if (userUpdates.location != null) {
-                curLocation = new LatLng(userUpdates.location.getLatitude(), userUpdates.location.getLongitude());
-                distance = (int) SphericalUtil.computeDistanceBetween(curLocation, station.position);
+                curLocationLatLng = new LatLng(userUpdates.location.getLatitude(), userUpdates.location.getLongitude());
+                distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, station.position);
             }
 
             Station BUSstation = new Station();
@@ -1606,7 +1555,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         }, error -> {
 
         });
-        RequestQueue requestQueue = Volley.newRequestQueue(getContext());
+        RequestQueue requestQueue = Volley.newRequestQueue(MapsNewer.this.getContext());
         requestQueue.add(stringRequest);
     }
 
@@ -1813,10 +1762,10 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                 String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
                 userUpdates.setLocation(manager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER));
                 if (userUpdates.location != null) {
-
                     final double currentLatitude = userUpdates.location.getLatitude();
                     final double currentLongitude = userUpdates.location.getLongitude();
                     LatLng loc1 = new LatLng(currentLatitude, currentLongitude);
+                    curLocationLatLng = loc1;
 
                     gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(loc1, 16));
                     gMap.animateCamera(CameraUpdateFactory.zoomTo(10), 2000, null);
@@ -1944,8 +1893,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             Station station = setBusStations().get(i);
 
             if (userUpdates.location != null) {
-                curLocation = new LatLng(userUpdates.location.getLatitude(), userUpdates.location.getLongitude());
-                distance = (int) SphericalUtil.computeDistanceBetween(curLocation, station.getPosition());
+                curLocationLatLng = new LatLng(userUpdates.location.getLatitude(), userUpdates.location.getLongitude());
+                distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, station.getPosition());
                 station.setDistance(distance);
 
                 if (distance < 1000) {
@@ -1971,14 +1920,15 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     @Override
     public void onDataEntered(DataSnapshot dataSnapshot, GeoLocation location) {
         //sendNotif("LRTMate App", String.format("%s entered the station.", dataSnapshot.getKey()));
+        Log.e("entered new", dataSnapshot.getKey());
         LatLng loc = new LatLng(location.latitude, location.longitude);
         if (location != null) {
-            if (!loc.equals(curLocation)) {
-                //Log.e("entered new", dataSnapshot.getKey());
-                entered_Station(location);
+            if (!loc.equals(userUpdates.getLatLngLocation())) {
+                Log.e("entered new", dataSnapshot.getKey());
+                entered_new_Station(location);
             } else {
                 Log.e("entered", "same");
-                //entered_Station(location);
+                entered_same_Station(location);
             }
         }
     }
@@ -2029,37 +1979,39 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
         CollectionReference reference = firebaseFirestore.collection("stationdetails");
 
-        userUpdates.setNearest_station(null);
-        userUpdates.setDistance_to_nearest_station(0);
-
-        try {
-            decrementCounter(reference, UserUpdates.nearest_station.name);
-            Log.e("user left", UserUpdates.nearest_station.name);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        decrementCounter(reference, userUpdates.getPrevious_stat().name);
+        Log.e("user left", UserUpdates.nearest_station.name);
     }
 
     //pinpoint the user when entering a trigger
-    private void entered_Station (GeoLocation location) {
+    private void entered_new_Station(GeoLocation location) {
         _approaching = new ArrayList<>();
         boolean found = false;
         LatLng user = new LatLng(location.latitude, location.longitude);
         Station station = new Station();
+        String newStation = null;
+        int nearest_station = 0;
+        int dist_to = 0;
+
+        if (!user.equals(curLocationLatLng)) {
+            HomeFragment.init.setText("Location Changed. Refreshing UI...");
+        }
 
         while (found == false) {
             for (StationFence stationFence : getStationsFences()) {
-                String newStation;
-                int nearest_station = (int) SphericalUtil.computeDistanceBetween(user, stationFence.stationLocation);
+                //Log.e("stat", stationFence.stationName);
+                //Log.e("dist", String.valueOf(stationFence.distance));
+                //nearest_station = (int) SphericalUtil.computeDistanceBetween(user, stationFence.stationLocation);
+                //Log.e("far", String.valueOf(nearest_station));
+                //Log.e("name", String.valueOf(stationFence.stationName));
                 //if user becomes <30m away from a station
-                if (nearest_station <= Config.ALLOWED_PROXIMITY) {
-                    int dist_to = nearest_station;
-
+                if (stationFence.distance <= Config.ALLOWED_PROXIMITY) {
+                    dist_to = nearest_station;
                     if (!foundfences.contains(stationFence)) {
                         foundfences.add(stationFence);
                     }
 
-                    if ((dist_to > Config.ACCURACY_DISTANCE)) {
+                    if ((stationFence.distance > Config.ACCURACY_DISTANCE)) {
                         //Log.e("entered", "poss");
                         //if they are close enough <50m
                         station.name = (stationFence.stationName);
@@ -2067,43 +2019,107 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
                         station.position = (stationFence.stationLocation);
                         station.distance = (nearest_station);
                         userUpdates.setNearest_station(station);
-                        userUpdates.setDistance_to_nearest_station(dist_to);
-                        UserUpdates.distance_to_nearest_station = dist_to;
+                        userUpdates.setDistance_to_nearest_station(stationFence.distance);
                         //Log.e("set poss", "station");
 
-                        if (stationFence.stationName.equals(station.name)) {
-                            newStation = station.name;
-                            FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                            CollectionReference reference = firebaseFirestore.collection("stationdetails");
-                            incrementCounter(reference, newStation);
-                            //Log.e("poss dist to", station.name + " " + dist_to);
-                            found = true;
-                            break;
-                        }
+                        newStation = station.name;
+                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                        CollectionReference reference = firebaseFirestore.collection("stationdetails");
+                        //incrementCounter(reference, newStation);
+                        //Log.e("poss dist to", station.name + " " + dist_to);
                         found = true;
                         break;
                     }
                     //if user becomes <25m away from a station
-                    else if (dist_to <= Config.ACCURACY_DISTANCE) {
+                    else if (stationFence.distance <= Config.ACCURACY_DISTANCE) {
                         //Log.e("entered", "closer");
+
+                        station.name = (stationFence.stationName);
+                        station.type = (stationFence.type);
+                        station.position = (stationFence.stationLocation);
+                        station.distance = (stationFence.distance);
+                        userUpdates.setNearest_station(station);
+                        userUpdates.setDistance_to_nearest_station(stationFence.distance);
+                        newStation = stationFence.stationName;
+                        Log.e("set", newStation);
+
+
+                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                        CollectionReference reference = firebaseFirestore.collection("stationdetails");
+                        incrementCounter(reference, newStation);
+                        Log.e("accu dist to", userUpdates.getNearest_station().name + " " + userUpdates.getDistance_to_nearest_station());
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void entered_same_Station (GeoLocation location) {
+        LatLng user = new LatLng(location.latitude, location.longitude);
+        boolean found = false;
+        Station station = new Station();
+        String newStation = null;
+        int nearest_station = 0;
+        int dist_to = 0;
+
+        if (!user.equals(curLocationLatLng)) {
+            HomeFragment.init.setText("Location Changed. Refreshing UI...");
+        }
+
+        while (found == false) {
+            for (StationFence stationFence : getStationsFences()) {
+                //Log.e("stat", stationFence.stationName);
+                //Log.e("dist", String.valueOf(stationFence.distance));
+                //nearest_station = (int) SphericalUtil.computeDistanceBetween(user, stationFence.stationLocation);
+                //Log.e("far", String.valueOf(nearest_station));
+                //Log.e("name", String.valueOf(stationFence.stationName));
+                //if user becomes <30m away from a station
+                if (stationFence.distance <= Config.ALLOWED_PROXIMITY) {
+                    if (!foundfences.contains(stationFence)) {
+                        foundfences.add(stationFence);
+                    }
+
+                    if ((stationFence.distance > Config.ACCURACY_DISTANCE)) {
+                        //Log.e("entered", "poss");
+                        //if they are close enough <50m
                         station.name = (stationFence.stationName);
                         station.type = (stationFence.type);
                         station.position = (stationFence.stationLocation);
                         station.distance = (nearest_station);
                         userUpdates.setNearest_station(station);
-                        userUpdates.setDistance_to_nearest_station(dist_to);
-                        UserUpdates.distance_to_nearest_station = dist_to;
-                        //Log.e("set", "station");
+                        userUpdates.setDistance_to_nearest_station(stationFence.distance);
+                        UserUpdates.distance_to_nearest_station = stationFence.distance;
+                        //Log.e("set poss", "station");
 
-                        if (stationFence.stationName.equals(station.name)) {
-                            newStation = station.name;
-                            FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                            CollectionReference reference = firebaseFirestore.collection("stationdetails");
-                            incrementCounter(reference, newStation);
-                            //Log.e("accu dist to", station.name + " " + dist_to);
-                            found = true;
-                            break;
-                        }
+                        newStation = station.name;
+                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                        CollectionReference reference = firebaseFirestore.collection("stationdetails");
+                        //incrementCounter(reference, newStation);
+                        //Log.e("poss dist to", station.name + " " + dist_to);
+                        found = true;
+                        break;
+                    }
+                    //if user becomes <25m away from a station
+                    else if (stationFence.distance <= Config.ACCURACY_DISTANCE) {
+                        //Log.e("entered", "closer");
+
+                        station.name = (stationFence.stationName);
+                        station.type = (stationFence.type);
+                        station.position = (stationFence.stationLocation);
+                        station.distance = (stationFence.distance);
+                        userUpdates.setNearest_station(station);
+                        userUpdates.setDistance_to_nearest_station(stationFence.distance);
+                        UserUpdates.distance_to_nearest_station = stationFence.distance;
+                        newStation = stationFence.stationName;
+                        Log.e("set", newStation);
+
+
+                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+                        CollectionReference reference = firebaseFirestore.collection("stationdetails");
+                        incrementCounter(reference, newStation);
+                        Log.e("accu dist to", station.name + " " + stationFence.distance);
                         found = true;
                         break;
                     }
@@ -2117,17 +2133,49 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
     }
 
+    @SuppressLint("NewApi")
     public Task<Void> incrementCounter(final CollectionReference ref, String name) {
+        UserUpdates.updatedOcc = false;
         DocumentReference occRef = ref.document("occupancy");
-        if (UserUpdates.nearest_station.name != null) {
-            if (!name.equals(UserUpdates.nearest_station.name)) {
+        String previous_stat = preferences.getString("previous", null);
+        //Log.e("prev", previous_stat);
+        /*if (previous_stat == null) {
+            Log.e("started journey at", name);
+            occRef.update(name, FieldValue.increment(1))
+                    .addOnFailureListener(e -> Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show())
+                    .addOnSuccessListener(aVoid -> Log.e("updated", "occupancy for new!"));
+            UserUpdates.updatedOcc = true;
+            userUpdates.setPrevious_stat(userUpdates.getNearest_station());
+            userUpdates.setDistance_to_prev_station(userUpdates.getDistance_to_nearest_station());
+
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("previous", userUpdates.getPrevious_stat().name);
+            editor.apply();
+
+            getCount(occRef, name);
+        }
+        else {
+            if (!UserUpdates.nearest_station.name.equals(previous_stat)) {
+                Log.e("changed stations to", name);
                 if (UserUpdates.updatedOcc == false) {
-                    occRef.update(name, FieldValue.increment(1));
+                    occRef.update(name, FieldValue.increment(1))
+                            .addOnFailureListener(e -> Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show())
+                            .addOnSuccessListener(aVoid -> Log.e("updated", "occupancy!"));
+                    userUpdates.setPrevious_stat(userUpdates.getNearest_station());
+                    userUpdates.setDistance_to_prev_station(userUpdates.getDistance_to_nearest_station());
                     UserUpdates.updatedOcc = true;
+                    getCount(occRef, name);
                 }
             }
-        }
-        getCount(occRef, name);
+            else {
+                Log.e("user is still at", name);
+                userUpdates.setPrevious_stat(userUpdates.getNearest_station());
+                userUpdates.setDistance_to_prev_station(userUpdates.getDistance_to_nearest_station());
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putString("previous", userUpdates.getPrevious_stat().name);
+                editor.apply();
+            }
+        }*/
         return null;
     }
 
@@ -2138,13 +2186,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
             if (task.isSuccessful()) {
                 DocumentSnapshot document = task.getResult();
                 if (document.exists()) {
-                    int ran = 1;
-                    int run = 2;
-                    while (ran < run) {
-                        HomeFragment.initOccupancy();
-                        Log.e("now occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
-                        ran++;
-                    }
+                        Log.e("occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
                 } else {
                     Log.e(TAG, "No such document");
                 }
@@ -2155,24 +2197,22 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
 
         ref.addSnapshotListener((snapshot, error) -> {
             UserUpdates.cur_stat_occupancy = snapshot.getDouble(stationName);
-            if (UserUpdates.tracking == true) {
-                int ran = 1;
-                int run = 2;
-                while (ran < run) {
-                    HomeFragment.initOccupancy();
-                    Log.e("now occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
-                    ran++;
-                }
-            }
+            Log.e("now occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
         });
         return null;
     }
 
     public Task<Void> decrementCounter (final CollectionReference ref, String name) {
         DocumentReference occRef = ref.document("occupancy");
-
-        occRef.update(name, FieldValue.increment(-1));
-        getCount(occRef, name);
+        if (UserUpdates.nearest_station.name != null) {
+            if (UserUpdates.updatedOcc == false) {
+                occRef.update(name, FieldValue.increment(-1))
+                        .addOnFailureListener(e -> Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show())
+                        .addOnSuccessListener(aVoid -> Log.e("decremented", "occupancy!"));
+                UserUpdates.updatedOcc = true;
+                getCount(occRef, name);
+            }
+        }
         return null;
     }
 
@@ -2184,5 +2224,56 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener {
     @Override
     public void onGeoQueryError(DatabaseError error) {
         Toast.makeText(getContext(), ""+ error.getMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+    public void onLocationChanged(@NonNull Location location) {
+        ShowNearestStations();
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        if (gMap != null) {
+            uid = firebaseAuth.getCurrentUser().getUid();
+
+            userGeoFire.setLocation(uid, new GeoLocation(
+                    location.getLatitude(),
+                    location.getLongitude()), (key, error) -> {
+                if (userMarker != null) userMarker.remove();
+
+                userMarker = gMap.addMarker(new MarkerOptions()
+                        .position(new LatLng(location.getLatitude(),
+                                location.getLongitude()))
+                        .visible(false)
+                        .title(uid));
+
+                userUpdates.setLocation(location);
+                userUpdates.setLatLngLocation(latLng);
+                curLocation = location;
+                ShowNearestStations();
+                gMap.animateCamera(CameraUpdateFactory
+                        .newLatLngZoom(userMarker.getPosition(), 13.0f));
+                initStationsFences();
+                //area identifiers
+                for (StationFence stationFence: getStationsFences()){
+                    gMap.addCircle(new CircleOptions().center(stationFence.stationLocation)
+                            .radius(30)//metres
+                            .strokeColor(Color.BLUE)
+                            .fillColor(0x220000FF)
+                            .strokeWidth(1.0f));
+
+                    //do this when user enters GeoFence
+                    GeoQuery query = userGeoFire.queryAtLocation(
+                            new GeoLocation(stationFence.stationLocation.latitude, stationFence.stationLocation.longitude), 0.15f);
+                    query.addGeoQueryDataEventListener(MapsNewer.this);
+                }
+            });
+        }
+
+        Log.e(TAG, "GPS LocationChanged");
+        Log.e(TAG, "Received GPS request for " + latLng);
+    }
+
+    @SuppressLint("MissingPermission")
+    @Override
+    public void onResume() {
+        locationManager.requestLocationUpdates(provider, 2000, 15, this);
+        super.onResume();
     }
 }

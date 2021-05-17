@@ -15,12 +15,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
+        android:id="@+id/holder"
         android:orientation="vertical">
 
         <LinearLayout
             android:id="@+id/loaderLL"
             android:layout_width="wrap_content"
-            android:layout_height="109dp"
+            android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="vertical"
             app:layout_constraintBottom_toTopOf="@+id/guideline3"
@@ -43,7 +44,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Initialising Componenets..." />
+                    android:id="@+id/init"
+                    android:text="Initialising Components..." />
 
                 <com.robinhood.ticker.TickerView
                     android:id="@+id/progress_ticker"
@@ -58,13 +60,11 @@
 
         <LinearLayout
             android:id="@+id/content_home"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:visibility="invisible"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:layout_marginBottom="?actionBarSize">
 
             <androidx.coordinatorlayout.widget.CoordinatorLayout
                 android:id="@+id/top_container"
@@ -290,9 +290,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/frameLayout">
+                    app:layout_constraintTop_toTopOf="parent">
 
                     <RelativeLayout
                         android:layout_width="match_parent"
@@ -427,11 +428,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_begin="551dp" />
+            app:layout_constraintGuide_begin="547dp" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
