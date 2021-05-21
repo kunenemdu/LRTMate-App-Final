@@ -28,17 +28,38 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_margin="15pt"
-                    android:gravity="center"
                     android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/txtBusStation_new"
+                        android:id="@+id/txtBusStation_clicked"
                         style="@style/TextAppearance.AppCompat.Headline"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:padding="5dp"
                         android:text="Clicked Station"
                         android:textSize="18dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:gravity="right"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:id="@+id/occupancy"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:padding="5dp"
+                            android:text="Quiet"
+                            android:layout_gravity="right"
+                            android:textSize="18dp" />
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:id="@+id/occupancy_anim"
+                            android:src="@drawable/live_anim"
+                            android:layout_height="24dp"/>
+
+                    </LinearLayout>
 
 
                 </LinearLayout>
@@ -59,7 +80,7 @@
                     android:textSize="15dp" />
 
                 <TableLayout
-                    android:id="@+id/buses_at_station_new"
+                    android:id="@+id/buses_at_station_clicked"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layoutDirection="ltr"
@@ -85,7 +106,7 @@
                     android:textSize="15dp" />
 
                 <TableLayout
-                    android:id="@+id/facilities_at_station"
+                    android:id="@+id/facilities_at_station_clicked"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layoutDirection="ltr"

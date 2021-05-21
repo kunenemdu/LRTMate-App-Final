@@ -152,7 +152,7 @@ public class HomeFragment extends Fragment implements LocationListener {
         main = getView().findViewById(R.id.content_home);
         progress_ticker = getView().findViewById(R.id.progress_ticker);
         progress_ticker.setCharacterLists(TickerUtils.provideNumberList());
-        buses_at_station = new Dialog(getContext());
+        buses_at_station = new Dialog(getActivity());
 
         //on load pan camera to user's location
         LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
@@ -178,7 +178,6 @@ public class HomeFragment extends Fragment implements LocationListener {
         statType.setText("Waiting to");
         next_arrivalTicker.setText("Receive Updates...");
 
-        statType.setTextColor(Color.BLACK);
         status.setTextColor(Color.BLACK);
         occupancy.setTextColor(Color.BLACK);
         proximity.setTextColor(Color.BLACK);
@@ -189,9 +188,24 @@ public class HomeFragment extends Fragment implements LocationListener {
 
         preferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         //Log.e("prefs are", preferences.getAll().toString());
-        stationLegendReminder = new Dialog(getContext());
+        stationLegendReminder = new Dialog(getActivity());
 
-        progress_handler.postDelayed(new Runnable() {
+        Handler legend = new Handler();
+        legend.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                boolean legend_seen = preferences.getBoolean("legend_seen", false);
+                role = preferences.getString("role", null);
+                if (!role.equals("Driver")) {
+                    if (legend_seen == false)
+                        showStationsLegend(true);
+                    else
+                        showStationsLegend(false);
+                }
+            }
+        }, 5000);
+
+        getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 new Thread(new Runnable() {
@@ -204,8 +218,10 @@ public class HomeFragment extends Fragment implements LocationListener {
                                 public void run() {
                                     loaderBar.setProgress(progressStatus);
                                     progress_ticker.setText(progressStatus + "/"+ loaderBar.getMax());
-                                    if (progressStatus == 80)
-                                        init.setText("Finishing...");
+                                    if (progressStatus > 40)
+                                        init.setText("Setting Variables...");
+                                        if (progressStatus == 75)
+                                            init.setText("Finishing...");
                                 }
                             });
                             try {
@@ -220,20 +236,6 @@ public class HomeFragment extends Fragment implements LocationListener {
                         loader.setVisibility(View.INVISIBLE);
                     }
                 }).start();
-                Handler legend = new Handler();
-                legend.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        boolean legend_seen = preferences.getBoolean("legend_seen", false);
-                        role = preferences.getString("role", null);
-                        if (!role.equals("User")) {
-                            if (legend_seen == false)
-                                showStationsLegend(true);
-                            else
-                                showStationsLegend(false);
-                        }
-                    }
-                }, 8000);
 
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -283,7 +285,7 @@ public class HomeFragment extends Fragment implements LocationListener {
                     }
                 }, 10000);
             }
-        }, 5000);
+        });
     }
 
     @SuppressLint("NewApi")
@@ -350,13 +352,13 @@ public class HomeFragment extends Fragment implements LocationListener {
                 //TODO: CALCULATE THIS USING USER'S AVG SPEED IF ON FOOT/DRIVING/CYCLING
                 int time = userUpdates.distance_to_nearest_station / 6;
                 proximity.setText("~ " + time + " min(s) from");
-                proximity.setTextColor(Color.GREEN);
+                proximity.setTextColor(getResources().getColor(R.color.normal_green));
                 cur_stationTicker.setText(userUpdates.nearest_station.name);
                 cur_stationTicker.setTextColor(Color.BLUE);
 
                 if (userUpdates.cur_stat_occupancy >= 3.0) {
                     occupancy.setText("Very Active");
-                    occupancy.setTextColor(Color.RED);
+                    occupancy.setTextColor(getResources().getColor(R.color.quantum_googred));
                 }
                 else if (userUpdates.cur_stat_occupancy >= 2.0) {
                     occupancy.setText("Active");
@@ -365,7 +367,7 @@ public class HomeFragment extends Fragment implements LocationListener {
                 }
                 else {
                     occupancy.setText("Quiet");
-                    occupancy.setTextColor(Color.GREEN);
+                    occupancy.setTextColor(getResources().getColor(R.color.normal_green));
                 }
 
                 try {
@@ -408,6 +410,7 @@ public class HomeFragment extends Fragment implements LocationListener {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("hmm");
                 SimpleDateFormat dateFormat2 = new SimpleDateFormat("hh:mm");
                 String time;
+                Log.e("times", snapshot.toString());
 
                 for (int i = 5; i >= 0; i--) {
                     time = snapshot.getString(String.valueOf(i));
@@ -513,10 +516,10 @@ public class HomeFragment extends Fragment implements LocationListener {
                 LocalTime date = next1.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
                 Duration timeElapsed = Duration.between(now, date);
                 Log.e("diff", "Time taken: "+ timeElapsed.toMinutes() +" minutes");
-                if (timeElapsed.toMinutes() == 0) {
+                if (timeElapsed.toMinutes() <= 1) {
                     next_arrivalTicker.setText("Arriving...");
                 } else
-                    next_arrivalTicker.setText("< " + timeElapsed.toMinutes() + " minutes");
+                    next_arrivalTicker.setText("< " + (timeElapsed.toMinutes() + 1) + " minutes");
 
                 timeHandler.postDelayed(this, 15000);
             }
@@ -647,7 +650,7 @@ public class HomeFragment extends Fragment implements LocationListener {
     @SuppressLint("MissingPermission")
     @Override
     public void onResume() {
-        locationManager.requestLocationUpdates(provider, 500, 15, this);
+        //locationManager.requestLocationUpdates(provider, 500, 15, this);
         super.onResume();
     }
 

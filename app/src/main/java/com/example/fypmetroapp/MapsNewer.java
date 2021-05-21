@@ -30,10 +30,12 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager.widget.ViewPager;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Dialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -45,6 +47,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Criteria;
 import android.location.Location;
@@ -53,6 +56,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -196,7 +200,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
     Marker userMarker;
     Marker driverMarker;
     Fragment active;
-    Dialog stationDetailsDialog;
+    private Dialog stationDetailsDialog;
     GlobalProperties properties = new GlobalProperties();
     FirebaseAuth firebaseAuth;
     public static String uid;
@@ -206,6 +210,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
     ArrayList<StationFence> foundfences;
     private LocationManager locationManager;
     private String provider;
+    ImageView occupancy_anim;
 
     //Class Declarations
     Origin origin = new Origin();
@@ -224,12 +229,87 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         preferences = this.getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-        stationDetailsDialog = new Dialog(getContext());
         firebaseAuth = FirebaseAuth.getInstance();
         this.locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         provider = locationManager.getBestProvider(criteria, false);
+        stationDetailsDialog = new Dialog(getContext());
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        active = this;
+        foundfences = new ArrayList<>();
+        fabDirections = getView().findViewById(R.id.fab_directions);
+        textAddress = getView().findViewById(R.id.textAddress);
+        titleText = getView().findViewById(R.id.titleText);
+        txtClicked_LRT_Station = getView().findViewById(R.id.txtSelectedtation);
+        timeText = null;
+        directionText = null;
+        nearbyCardView = getView().findViewById(R.id.nearbystations);
+        directionsButton = getView().findViewById(R.id.startDirections);
+        drivingMode = getView().findViewById(R.id.drivingMode);
+        stationDetailsDialog = new Dialog(getContext());
+
+        directionsButton.setOnClickListener(Buttons);
+        nearbyCardView.setOnClickListener(Buttons);
+        drivingMode.setOnClickListener(Buttons);
+
+        ((FloatingActionButton) getView().findViewById(R.id.fab_directions)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    if (bottomSheetBehavior_Directions.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+                        bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                    } else {
+                        bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_EXPANDED);
+                        gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
+                    }
+                } catch (Exception e) {
+                }
+            }
+        });
+
+        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+        String role = pref.getString("role", null);
+
+        Dexter.withActivity(getActivity())
+                .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                .withListener(new PermissionListener() {
+                    @Override
+                    public void onPermissionGranted(PermissionGrantedResponse response) {
+                        if (role.equals("Driver")) {
+
+                        } else if (role.equals("User")) {
+
+                        }
+                        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
+                                .findFragmentById(R.id.mainMapFrags);
+                        mapFragment.getMapAsync(MapsNewer.this::onMapReady);
+                        GeoFireConfig();
+                    }
+
+                    @Override
+                    public void onPermissionDenied(PermissionDeniedResponse response) {
+                        Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+
+                    }
+                }).check();
+
+        initMarkerComponent();
+        initNearByComponent();
+        initLRT_StationScheduleSheet();
+        initBottomDirectionsComponent();
+        initAutoFrags();
+        initBus_StationScheduleSheet();
+        initClicked_BUS_Component();
+        clickedBus = getView().findViewById(R.id.clickedBus);
     }
 
     private void buildDriverLocationCallback() {
@@ -466,81 +546,6 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
     @Override
     public void onStop() {
         super.onStop();
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        active = this;
-        foundfences = new ArrayList<>();
-
-        fabDirections = getView().findViewById(R.id.fab_directions);
-        textAddress = getView().findViewById(R.id.textAddress);
-        titleText = getView().findViewById(R.id.titleText);
-        txtClicked_LRT_Station = getView().findViewById(R.id.txtSelectedtation);
-        timeText = null;
-        directionText = null;
-        nearbyCardView = getView().findViewById(R.id.nearbystations);
-        directionsButton = getView().findViewById(R.id.startDirections);
-        drivingMode = getView().findViewById(R.id.drivingMode);
-
-        directionsButton.setOnClickListener(Buttons);
-        nearbyCardView.setOnClickListener(Buttons);
-        drivingMode.setOnClickListener(Buttons);
-
-        ((FloatingActionButton) getView().findViewById(R.id.fab_directions)).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    if (bottomSheetBehavior_Directions.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-                        bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                    } else {
-                        bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_EXPANDED);
-                        gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
-                    }
-                } catch (Exception e) {
-                }
-            }
-        });
-
-        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-        String role = pref.getString("role", null);
-
-        Dexter.withActivity(getActivity())
-                .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                .withListener(new PermissionListener() {
-                    @Override
-                    public void onPermissionGranted(PermissionGrantedResponse response) {
-                        if (role.equals("Driver")) {
-
-                        } else if (role.equals("User")) {
-
-                        }
-                        SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
-                                .findFragmentById(R.id.mainMapFrags);
-                        mapFragment.getMapAsync(MapsNewer.this::onMapReady);
-                        GeoFireConfig();
-                    }
-
-                    @Override
-                    public void onPermissionDenied(PermissionDeniedResponse response) {
-                        Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-
-                    }
-                }).check();
-
-        initMarkerComponent();
-        initNearByComponent();
-        initLRT_StationScheduleSheet();
-        initBottomDirectionsComponent();
-        initAutoFrags();
-        initBus_StationScheduleSheet();
-        initClicked_BUS_Component();
-        clickedBus = getView().findViewById(R.id.clickedBus);
     }
 
     private void initStationsFences() {
@@ -1301,18 +1306,111 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
         }
     }
 
-    private void ShowStationDialog(Marker marker) {
-        stationDetailsDialog.setContentView(R.layout.dialog_clicked_station);
-        txtClicked_BUS_Station = stationDetailsDialog.findViewById(R.id.txtBusStation_new);
-        txtClicked_BUS_Station.setText(marker.getTitle());
-        stationDetailsDialog.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
+    private boolean onMarkerClick(Marker marker) {
+        try {
+            if (marker.getTag().equals("P")) {
+                titleText.setText(marker.getTitle());
+                textAddress.setText(marker.getPosition().toString());
+                //show it as collapsed
+                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                //hide all the other bottom sheets
+                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
+                gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
+            }
+            else if (marker.getTag().equals("LRT")) {
+                txtClicked_LRT_Station.setText(marker.getTitle());
+                //draw the LRT polyline on click
+                polyline_LRT.setVisible(true);
+                //show clicked station sheet as half expanded
+                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
 
-        ImageButton closeDialog = stationDetailsDialog.findViewById(R.id.dialog_closeX);
-        Extract_BUS_Data(marker);
-        TableLayout buses = getView().findViewById(R.id.buses_at_station_new);
-        buses.removeAllViews();
-        stationDetailsDialog.show();
-        closeDialog.setOnClickListener(v -> stationDetailsDialog.dismiss());
+                //hide the rest of the bottom sheets
+                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
+                fabDirections.hide();
+                nearbyCardView.setVisibility(View.INVISIBLE);
+                gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
+
+                onLRT_StationClick(marker);
+            }
+            else if (marker.getTag().equals("BUS")) {
+                //draw the BUS polyline on click
+                /*for (int i = 0; i < allBuses.size(); i++) {
+                    Bus bus = allBuses.get(i);
+                    ArrayList<Station> stations = bus.getStops();
+
+                    for (int j = 0; j < stations.size(); j++) {
+                        Station station1 = stations.get(j);
+
+                        if (station1.getName().equals(marker.getTitle())) {
+                            //Log.e("Bus is:", String.valueOf(bus.getName()));
+                            //Log.e("stops for this bus ", station1.getName());
+                        }
+                    }
+                }*/
+                /*show clicked station sheet as half expanded
+                bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+                hide the rest of the bottom sheets
+                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
+                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
+                fabDirections.hide();*/
+                gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
+                onBUS_StationClick(marker);
+            }
+            else if (marker.getTag().equals("D")) marker.showInfoWindow();
+            else if (marker.getTag().equals("O")) marker.showInfoWindow();
+
+        } catch (Exception e) {
+        }
+        return true;
+    }
+
+    public void onBUS_StationClick(Marker marker) {
+        try {
+            stationDetailsDialog = new Dialog(getContext());
+            stationDetailsDialog.setContentView(R.layout.dialog_clicked_station);
+            txtClicked_BUS_Station = stationDetailsDialog.findViewById(R.id.txtBusStation_clicked);
+            txtClicked_BUS_Station.setText(marker.getTitle());
+            stationDetailsDialog.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
+            ImageButton closeDialog = stationDetailsDialog.findViewById(R.id.dialog_closeX);
+            occupancy_anim = stationDetailsDialog.findViewById(R.id.occupancy_anim);
+            Extract_BUS_Data(marker);
+            TableLayout buses = stationDetailsDialog.findViewById(R.id.buses_at_station_clicked);
+            buses.removeAllViews();
+            animateView(occupancy_anim, true);
+            stationDetailsDialog.show();
+            closeDialog.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    animateView(occupancy_anim, false);
+                    stationDetailsDialog.dismiss();
+                }
+            });
+        } catch (Exception e) {
+            Log.e("failed", e.getMessage());
+        }
+        //TableLayout buses = getView().findViewById(R.id.buses_at_station);
+    }
+
+    @SuppressLint("NewApi")
+    private void animateView (ImageView imageView, boolean animate) {
+        AnimatedVectorDrawable d = (AnimatedVectorDrawable) getResources().getDrawable(R.drawable.live_anim);
+        // Insert your AnimatedVectorDrawable resource identifier
+        occupancy_anim.setImageDrawable(d);
+
+        if (animate) {
+            d.start();
+        }
+        else
+            d.stop();
     }
 
     //show the stations for a bus route
@@ -1399,75 +1497,6 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
         }
     }
 
-    public boolean onMarkerClick(Marker marker) {
-        try {
-            if (marker.getTag().equals("P")) {
-                titleText.setText(marker.getTitle());
-                textAddress.setText(marker.getPosition().toString());
-                //show it as collapsed
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                //hide all the other bottom sheets
-                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-                gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
-            } else if (marker.getTag().equals("LRT")) {
-                txtClicked_LRT_Station.setText(marker.getTitle());
-                //draw the LRT polyline on click
-                polyline_LRT.setVisible(true);
-                //show clicked station sheet as half expanded
-                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-
-                //hide the rest of the bottom sheets
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
-                fabDirections.hide();
-                nearbyCardView.setVisibility(View.INVISIBLE);
-                gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
-
-                onLRT_StationClick(marker);
-            } else if (marker.getTag().equals("BUS")) {
-
-                //draw the BUS polyline on click
-                /*for (int i = 0; i < allBuses.size(); i++) {
-                    Bus bus = allBuses.get(i);
-                    ArrayList<Station> stations = bus.getStops();
-
-                    for (int j = 0; j < stations.size(); j++) {
-                        Station station1 = stations.get(j);
-
-                        if (station1.getName().equals(marker.getTitle())) {
-                            //Log.e("Bus is:", String.valueOf(bus.getName()));
-                            //Log.e("stops for this bus ", station1.getName());
-                        }
-                    }
-                }*/
-                /*show clicked station sheet as half expanded
-                bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-                hide the rest of the bottom sheets
-                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
-                fabDirections.hide();*/
-
-
-                gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
-                onBUS_StationClick(marker);
-                ShowStationDialog(marker);
-            }
-            else if (marker.getTag().equals("D")) marker.showInfoWindow();
-            else if (marker.getTag().equals("O")) marker.showInfoWindow();
-
-        } catch (Exception e) {
-        }
-        return true;
-    }
-
     public ArrayList<String> GetAllLRTNames() {
         ArrayList<String> allLRTStationNames = new ArrayList<>();
         for (int i = 0; i < allLRTMarkers.size(); i++) {
@@ -1518,12 +1547,6 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
         TableLayout scheTable_PL = getView().findViewById(R.id.scheTable_PL);
         scheTable_RH.removeAllViews();
         scheTable_PL.removeAllViews();
-    }
-
-    public void onBUS_StationClick(Marker marker) {
-        Extract_BUS_Data(marker);
-        TableLayout buses = getView().findViewById(R.id.buses_at_station);
-        buses.removeAllViews();
     }
 
     //find station times using only STATION NAME returns JSONArray
@@ -1625,8 +1648,8 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
             JSONArray result = jsonObject.getJSONArray(Config.JSON_ARRAY_BUSES);
             String parking = null, disabled = null, bike_rack = null;
 
-            TableLayout table_buses = stationDetailsDialog.findViewById(R.id.buses_at_station_new);
-            TableLayout table_facilities = stationDetailsDialog.findViewById(R.id.facilities_at_station);
+            TableLayout table_buses = stationDetailsDialog.findViewById(R.id.buses_at_station_clicked);
+            TableLayout table_facilities = stationDetailsDialog.findViewById(R.id.facilities_at_station_clicked);
 
             View inflated_buses = LayoutInflater.from(getContext()).inflate(R.layout.bus_to_inflate, table_buses, false);
             View inflated_facilities = LayoutInflater.from(getContext()).inflate(R.layout.facility_to_inflate, table_facilities, false);
@@ -1680,9 +1703,9 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
             }
 
             //SnackBar tip component
-            Snackbar.make(table_buses, "Click a bus too see its route!",
+            /*Snackbar.make(table_buses, "Click a bus too see its route!",
                     Snackbar.LENGTH_SHORT)
-                    .show();
+                    .show();*/
 
             //show parking availability at station
             if (parking.equals("1")) {
@@ -2136,10 +2159,9 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
     @SuppressLint("NewApi")
     public Task<Void> incrementCounter(final CollectionReference ref, String name) {
         UserUpdates.updatedOcc = false;
-        DocumentReference occRef = ref.document("occupancy");
+        /*DocumentReference occRef = ref.document("occupancy");
         String previous_stat = preferences.getString("previous", null);
-        //Log.e("prev", previous_stat);
-        /*if (previous_stat == null) {
+        if (previous_stat == null) {
             Log.e("started journey at", name);
             occRef.update(name, FieldValue.increment(1))
                     .addOnFailureListener(e -> Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show())
@@ -2153,8 +2175,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
             editor.apply();
 
             getCount(occRef, name);
-        }
-        else {
+        } else {
             if (!UserUpdates.nearest_station.name.equals(previous_stat)) {
                 Log.e("changed stations to", name);
                 if (UserUpdates.updatedOcc == false) {
@@ -2166,8 +2187,7 @@ public class MapsNewer extends Fragment implements GeoQueryDataEventListener, Lo
                     UserUpdates.updatedOcc = true;
                     getCount(occRef, name);
                 }
-            }
-            else {
+            } else {
                 Log.e("user is still at", name);
                 userUpdates.setPrevious_stat(userUpdates.getNearest_station());
                 userUpdates.setDistance_to_prev_station(userUpdates.getDistance_to_nearest_station());

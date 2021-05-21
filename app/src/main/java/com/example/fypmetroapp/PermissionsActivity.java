@@ -7,7 +7,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -52,9 +54,9 @@ public class PermissionsActivity extends AppCompatActivity {
     private void requestLocation () {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            setPerms(0);
             showMissingPermissionError();
             checkLocationPermission();
+            setPerms(0);
         }
         else {
             setPerms(1);
@@ -69,7 +71,7 @@ public class PermissionsActivity extends AppCompatActivity {
         } else {
             //prompt user to allow location permission
             showMissingPermissionError();
-
+            setPerms(0);
             // Permission to access the location is missing. Show rationale and request permission
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
@@ -123,7 +125,14 @@ public class PermissionsActivity extends AppCompatActivity {
      */
     //TODO: DIALOG FOR ALLOWING LOCATION PERMISSION
     private void showMissingPermissionError() {
-        PermissionUtils.PermissionDeniedDialog denied = new PermissionUtils.PermissionDeniedDialog();
-        denied.show(getSupportFragmentManager(), "dialog");
+//        PermissionUtils.PermissionDeniedDialog denied = new PermissionUtils.PermissionDeniedDialog();
+//        denied.show(getSupportFragmentManager(), "dialog");
+        AlertDialog.Builder test = new AlertDialog.Builder(this);
+        test.setTitle("title");
+        test.setCancelable(true);
+        test.setMessage("message...");
+        AlertDialog testDialog = test.create();
+        testDialog.show();  // to show
+        testDialog.dismiss();  // to dismiss
     }
 }

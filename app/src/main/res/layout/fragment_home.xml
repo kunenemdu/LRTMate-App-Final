@@ -232,13 +232,6 @@
                                     android:layout_height="wrap_content"
                                     android:text="Incoming: " />
 
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1">
-
                                 <TextView
                                     android:id="@+id/stationType"
                                     android:layout_width="wrap_content"
@@ -246,11 +239,17 @@
                                     android:text="Bus"
                                     android:textColor="@color/bright_blue" />
 
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1">
+
                                 <com.robinhood.ticker.TickerView
                                     android:id="@+id/nextArrival"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginHorizontal="5dp"
                                     android:textColor="@color/quantum_googgreen"
                                     app:ticker_animationDuration="1500" />
 
