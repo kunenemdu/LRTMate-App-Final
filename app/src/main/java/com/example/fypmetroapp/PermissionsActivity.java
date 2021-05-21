@@ -2,16 +2,19 @@ package com.example.fypmetroapp;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 
@@ -21,15 +24,14 @@ public class PermissionsActivity extends AppCompatActivity {
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 0;
     private boolean permissionLocation = false;
     private boolean permissionDenied = false;
-
-    int perms = 0;
+    int perms;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_permissions);
         //getSupportActionBar().hide();
-
+        perms = 0;
         requestLocation();
     }
 
@@ -43,12 +45,12 @@ public class PermissionsActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        super.onStart();
         if (getPerms() == 0) {
             requestLocation();
         }
         else if (getPerms() == 1)
             startSplashActivity();
+        super.onStart();
     }
 
     private void requestLocation () {
@@ -78,6 +80,7 @@ public class PermissionsActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("NewApi")
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
@@ -87,11 +90,28 @@ public class PermissionsActivity extends AppCompatActivity {
         if (PermissionUtils.isPermissionGranted(permissions, grantResults, Manifest.permission.ACCESS_FINE_LOCATION)) {
             // Enable the my location layer if the permission has been granted.
             startSplashActivity();
-        } else {
-            // Permission was denied. Display an error message
+        }
+        else {
             showMissingPermissionError();
             // Display the missing permission error dialog when the fragments resume.
             permissionDenied = true;
+
+//            new AlertDialog.Builder(this)
+//                    .setTitle("Delete entry")
+//                    .setMessage("Are you sure you want to delete this entry?")
+//
+//                    // Specifying a listener allows you to take an action before dismissing the dialog.
+//                    // The dialog is automatically dismissed when a dialog button is clicked.
+//                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+//                        public void onClick(DialogInterface dialog, int which) {
+//                            // Continue with delete operation
+//                        }
+//                    })
+//
+//                    // A null listener allows the button to dismiss the dialog and take no further action.
+//                    .setNegativeButton(android.R.string.no, null)
+//                    .setIcon(android.R.drawable.ic_dialog_alert)
+//                    .show();
         }
     }
 
@@ -125,14 +145,7 @@ public class PermissionsActivity extends AppCompatActivity {
      */
     //TODO: DIALOG FOR ALLOWING LOCATION PERMISSION
     private void showMissingPermissionError() {
-//        PermissionUtils.PermissionDeniedDialog denied = new PermissionUtils.PermissionDeniedDialog();
-//        denied.show(getSupportFragmentManager(), "dialog");
-        AlertDialog.Builder test = new AlertDialog.Builder(this);
-        test.setTitle("title");
-        test.setCancelable(true);
-        test.setMessage("message...");
-        AlertDialog testDialog = test.create();
-        testDialog.show();  // to show
-        testDialog.dismiss();  // to dismiss
+        PermissionUtils.PermissionDeniedDialog denied = new PermissionUtils.PermissionDeniedDialog();
+        denied.show(getSupportFragmentManager(), "dialog");
     }
 }

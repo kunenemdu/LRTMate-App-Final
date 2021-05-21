@@ -56,6 +56,7 @@ public class NavigationActivity extends AppCompatActivity {
     public static TextView navname, navid;
     SharedPreferences preferences;
     public static Activity activity;
+    BottomNavigationView navigation;
 
 
     @Override
@@ -71,7 +72,7 @@ public class NavigationActivity extends AppCompatActivity {
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         //set launch activity
-        BottomNavigationView navigation = findViewById(R.id.navigation);
+        navigation = findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
         fm.beginTransaction().add(R.id.main_container, mapsNewer, "1").hide(mapsNewer).commit();
@@ -112,6 +113,7 @@ public class NavigationActivity extends AppCompatActivity {
             switch(id)
             {
                 case R.id.account:
+                    navigation.setSelectedItemId(R.id.navigation_profile);
                     fm.beginTransaction()
                             .hide(active)
                             .show(profileFragment)
