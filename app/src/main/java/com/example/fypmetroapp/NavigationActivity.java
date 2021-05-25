@@ -2,15 +2,11 @@ package com.example.fypmetroapp;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Parcelable;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,23 +16,16 @@ import android.widget.Toast;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-
-import static android.graphics.Color.*;
 
 public class NavigationActivity extends AppCompatActivity {
 
@@ -44,7 +33,8 @@ public class NavigationActivity extends AppCompatActivity {
     final Fragment profileFragment = new ProfileFragment();
     final Fragment userprefs = new UserPreferencesFragment();
     final Fragment ticketFragment = new TicketFragment();
-    final Fragment homeFragment = new HomeFragment();
+    final Fragment homeFragment_user = new HomeFragment_User();
+    final Fragment homeFragment_driver = new HomeFragment_Driver();
     static FragmentManager fm;
     Fragment active;
     private DrawerLayout dl;
@@ -74,17 +64,22 @@ public class NavigationActivity extends AppCompatActivity {
         //set launch activity
         navigation = findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+        preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        role = preferences.getString("role", null);
 
         fm.beginTransaction().add(R.id.main_container, mapsNewer, "1").hide(mapsNewer).commit();
-        fm.beginTransaction().add(R.id.main_container, homeFragment, "1").commit();
-        fm.beginTransaction().add(R.id.main_container, userprefs, "5").hide(userprefs).commit();
-        fm.beginTransaction().add(R.id.main_container, ticketFragment, "3").hide(ticketFragment).commit();
-        fm.beginTransaction().add(R.id.main_container, profileFragment, "4").hide(profileFragment).commit();
+        if (role.equals("User")) {
+            fm.beginTransaction().add(R.id.main_container, homeFragment_user, "2").commit();
+        } else if (role.equals("Driver")) {
+            fm.beginTransaction().add(R.id.main_container, homeFragment_driver, "3").commit();
+        }
+        fm.beginTransaction().add(R.id.main_container, userprefs, "6").hide(userprefs).commit();
+        fm.beginTransaction().add(R.id.main_container, ticketFragment, "4").hide(ticketFragment).commit();
+        fm.beginTransaction().add(R.id.main_container, profileFragment, "5").hide(profileFragment).commit();
         fm.executePendingTransactions();
 
         //buggy switching from launch fix
-        active = homeFragment;
-        preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        active = homeFragment_user;
     }
 
     @SuppressLint("NewApi")
@@ -95,7 +90,7 @@ public class NavigationActivity extends AppCompatActivity {
         dl = findViewById(R.id.drawerLayout);
         showButton = findViewById(R.id.bt_menu_show);
         legendButton = findViewById(R.id.legend_show);
-        legendButton.setOnClickListener(v -> HomeFragment.stationLegendReminder.show());
+        legendButton.setOnClickListener(v -> HomeFragment_User.stationLegendReminder.show());
         navname = findViewById(R.id.nameToolbar);
         navid = findViewById(R.id.IDToolbar);
         nv = findViewById(R.id.left_menu);
@@ -215,18 +210,23 @@ public class NavigationActivity extends AppCompatActivity {
                 case R.id.navigation_home:
                     fm.beginTransaction()
                             .hide(active)
-                            .show(homeFragment)
+                            .show(homeFragment_user)
                             .commit();
-                    active = homeFragment;
+                    active = homeFragment_user;
                     return true;
             }
             return false;
         }
     };
 
+    @SuppressLint("WrongConstant")
     @Override
     public void onBackPressed() {
-        moveTaskToBack(false);
-        super.onBackPressed();
+        if (dl.isDrawerOpen(GravityCompat.START)) {
+            dl.closeDrawers();
+        } else {
+            moveTaskToBack(false);
+            super.onBackPressed();
+        }
     }
 }

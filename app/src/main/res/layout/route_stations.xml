@@ -24,15 +24,17 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:id="@+id/forBusText"
-            android:layout_marginTop="20dp">
+            android:layout_marginTop="10dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/circle_box"
+                android:gravity="center"
                 android:text="163"
                 android:id="@+id/clickedBus"
-                android:textColor="@color/main_blue"
-                android:textSize="20dp"
+                android:textColor="@color/white"
+                android:textSize="15dp"
                 android:layout_gravity="center"/>
 
             <LinearLayout

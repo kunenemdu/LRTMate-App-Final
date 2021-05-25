@@ -9,7 +9,7 @@
     android:layout_height="match_parent"
     android:id="@+id/main_container_element"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".HomeFragment">
+    tools:context=".HomeFragment_Driver">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -153,6 +153,7 @@
                                 <LinearLayout
                                     android:layout_width="150dp"
                                     android:orientation="vertical"
+                                    android:id="@+id/ringIndic"
                                     android:gravity="center"
                                     android:background="@drawable/outline_circle"
                                     android:layout_height="150dp"

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.fypmetroapp">
 
@@ -12,6 +13,7 @@
          location permissions for the "MyLocation" functionality.
     -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -27,7 +29,6 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/logo"
-        android:label="LRTMate"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.FYPMetroApp"
@@ -76,6 +77,13 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+
+        <meta-data
+            android:name="OnlineRouting.Key"
+            android:value="DenCQtAmEE7AmZQNxMmxDDOCqA9U3yaT" />
+
+        <meta-data android:name="com.here.android.maps.appid" android:value="Pou5ZggAmjSGbpCtLK4tmQ"/>
+        <meta-data android:name="com.here.android.maps.apptoken" android:value="VVS0zN8MNDO36qxox9SIzgSqoGbVP-VYm-FgpBWBMGSfhNSYn01GtQzPqOd4eOvl9ULb13kpXuEsQODLUXmphQ"/>
 
         <uses-library
             android:name="org.apache.http.legacy"

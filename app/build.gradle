@@ -52,6 +52,8 @@ android {
 }
 
 dependencies {
+    implementation("com.tomtom.online:sdk-routing:2.4807")
+    implementation 'com.google.maps.android:android-maps-utils:0.5+'
     implementation 'com.google.android:flexbox:1.1.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'androidx.core:core-ktx:1.3.2'

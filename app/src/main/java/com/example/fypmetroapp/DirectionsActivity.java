@@ -56,9 +56,7 @@ import java.util.concurrent.TimeUnit;
 
 public class DirectionsActivity extends AppCompatActivity {
 
-    BottomSheetBehavior bottomSheetBehavior_Directions;
     BottomSheetBehavior bottomSheetBehavior_NearBy;
-    BottomSheetBehavior bottomSheetBehavior_directionsBottom;
     TextView titleText, textAddress;
     GoogleMap gMap;
     private static final int overview = 0;
@@ -77,12 +75,13 @@ public class DirectionsActivity extends AppCompatActivity {
         gMap = new MapsNewer().gMap;
 
         if (gMap != null) {
-            bottomSheetBehavior_Directions = new MapsNewer().bottomSheetBehavior_Directions;
             bottomSheetBehavior_NearBy = new MapsNewer().bottomSheetBehavior_NearBy;
             titleText = new MapsNewer().titleText;
             textAddress = new MapsNewer().textAddress;
 
 
         }
+
+        Log.e("used ", "directions");
     }
 }
