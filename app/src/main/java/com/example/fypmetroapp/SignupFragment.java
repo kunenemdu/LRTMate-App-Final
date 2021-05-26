@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PorterDuffXfermode;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -25,6 +26,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.location.LocationManagerCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -61,10 +63,22 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
         this_user = new HashMap<>();
 
         if (mAuth.getCurrentUser() != null) {
-            startActivity(new Intent(getContext(), NavigationActivity.class));
+            if (isLocationEnabled(getContext()) == true) {
+                Log.e("logged in", "on too");
+                startActivity(new Intent(getContext(), NavigationActivity.class));
+            }
+            else {
+                Log.e("logged in", "not on tho");
+                startActivity(new Intent(getContext(), NoAccess.class));
+            }
             return;
         }
         firebaseFirestore = FirebaseFirestore.getInstance();
+    }
+
+    public boolean isLocationEnabled(Context context) {
+        LocationManager manager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        return manager != null && LocationManagerCompat.isLocationEnabled(manager);
     }
 
     @Override

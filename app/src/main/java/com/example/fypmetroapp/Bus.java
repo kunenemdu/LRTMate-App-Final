@@ -2,18 +2,13 @@ package com.example.fypmetroapp;
 
 import android.graphics.Color;
 import android.util.Log;
-import android.view.View;
-
-import androidx.annotation.NonNull;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.maps.DirectionsApi;
-import com.google.maps.GeoApiContext;
 import com.google.maps.android.PolyUtil;
 import com.google.maps.errors.ApiException;
 import com.google.maps.model.DirectionsResult;
@@ -25,7 +20,6 @@ import org.joda.time.DateTime;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class Bus {
     int name;
@@ -58,8 +52,8 @@ public class Bus {
 
     //show bus route line
     public void busRoute (Bus bus) {
-        GoogleMap googleMap = MapsNewer.gMap;
-        ArrayList<Polyline> route = MapsNewer.route;
+        GoogleMap googleMap = Maps_Full_Access.gMap;
+        ArrayList<Polyline> route = Maps_Full_Access.route;
         ArrayList<Station> busStops = bus.getStops();
         Station previous;
 
@@ -81,7 +75,7 @@ public class Bus {
                 if (results != null) {
                     if (googleMap != null) {
                         route.add(addBusPolyline(results, googleMap));
-                        positionCamera(results.routes[MapsNewer.overview], googleMap);
+                        positionCamera(results.routes[0], googleMap);
                     }else
                         Log.e("maps ", "null");
                 }
@@ -90,13 +84,13 @@ public class Bus {
     }
 
     private void positionCamera(DirectionsRoute route, GoogleMap mMap) {
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(route.legs[MapsNewer.overview].startLocation.lat, route.legs[MapsNewer.overview].startLocation.lng), 8));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(route.legs[0].startLocation.lat, route.legs[0].startLocation.lng), 8));
     }
 
     private DirectionsResult getDirectionsDetails(String origin, String destination, TravelMode mode) {
         DateTime now = new DateTime();
         try {
-            return DirectionsApi.newRequest(new MapsNewer().getGeoContext())
+            return DirectionsApi.newRequest(new Maps_Full_Access().getGeoContext())
                     .mode(mode)
                     .origin(origin)
                     .destination(destination)
@@ -116,7 +110,7 @@ public class Bus {
 
     public Polyline addBusPolyline(DirectionsResult results, GoogleMap mMap) {
         // Draw a dashed (60px spaced) blue polyline
-        List<LatLng> decodedPath = PolyUtil.decode(results.routes[MapsNewer.overview].overviewPolyline.getEncodedPath());
+        List<LatLng> decodedPath = PolyUtil.decode(results.routes[0].overviewPolyline.getEncodedPath());
         busPolyline = mMap.addPolyline(new PolylineOptions().addAll(decodedPath));
         busPolyline.setColor(Color.BLUE);
         busPolyline.setWidth(20f);

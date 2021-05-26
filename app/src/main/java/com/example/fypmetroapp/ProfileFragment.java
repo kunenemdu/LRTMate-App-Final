@@ -17,6 +17,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 
 import java.util.Objects;
@@ -25,12 +26,14 @@ public class ProfileFragment extends Fragment {
 
     TextView fullName, pointsView, tripsView;
     FirebaseAuth firebaseAuth;
+    FirebaseFirestore firebaseFirestore;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         firebaseAuth = FirebaseAuth.getInstance();
+        firebaseFirestore = FirebaseFirestore.getInstance();
     }
 
     @Override
@@ -53,7 +56,7 @@ public class ProfileFragment extends Fragment {
                 SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
                 String role = pref.getString("role", null);
 
-                DocumentReference documentReference = NavigationActivity.firebaseFirestore.collection(role).document(userid);
+                DocumentReference documentReference = firebaseFirestore.collection(role).document(userid);
                 documentReference.addSnapshotListener(getActivity(), (documentSnapshot, error) -> {
                     if (documentSnapshot != null) {
                         //show users full name

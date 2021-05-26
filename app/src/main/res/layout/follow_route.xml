@@ -43,7 +43,7 @@
                 android:orientation="vertical">
 
                 <View
-                    android:layout_width="40dp"
+                    android:layout_width="25dp"
                     android:layout_gravity="center"
                     android:layout_height="2dp"
                     android:background="@color/quantum_grey500" />
@@ -51,7 +51,6 @@
                 <TableLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="10dp"
                     android:layout_marginTop="15dp"
                     android:id="@+id/mainTable_Route_follow">
 
@@ -60,10 +59,7 @@
 
             </LinearLayout>
 
-
-
         </LinearLayout>
-
 
     </androidx.cardview.widget.CardView>
 

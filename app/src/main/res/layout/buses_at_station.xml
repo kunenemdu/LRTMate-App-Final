@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:id="@+id/bussss"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".MapsNewer"
+    tools:context=".Maps_No_Location_Access"
     android:layout_height="match_parent">
 
     <TextView

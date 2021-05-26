@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.location.Criteria;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
@@ -29,7 +31,7 @@ import androidx.fragment.app.FragmentManager;
 
 public class NavigationActivity extends AppCompatActivity {
 
-    final Fragment mapsNewer = new MapsNewer();
+    final Fragment mapsNewer = new Maps_Full_Access();
     final Fragment profileFragment = new ProfileFragment();
     final Fragment userprefs = new UserPreferencesFragment();
     final Fragment ticketFragment = new TicketFragment();
@@ -47,6 +49,8 @@ public class NavigationActivity extends AppCompatActivity {
     SharedPreferences preferences;
     public static Activity activity;
     BottomNavigationView navigation;
+    String provider;
+    LocationManager locationManager;
 
 
     @Override
@@ -67,19 +71,22 @@ public class NavigationActivity extends AppCompatActivity {
         preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         role = preferences.getString("role", null);
 
+        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, false);
+        //buggy switching from launch fix
         fm.beginTransaction().add(R.id.main_container, mapsNewer, "1").hide(mapsNewer).commit();
         if (role.equals("User")) {
             fm.beginTransaction().add(R.id.main_container, homeFragment_user, "2").commit();
+            active = homeFragment_user;
         } else if (role.equals("Driver")) {
             fm.beginTransaction().add(R.id.main_container, homeFragment_driver, "3").commit();
+            active = homeFragment_driver;
         }
         fm.beginTransaction().add(R.id.main_container, userprefs, "6").hide(userprefs).commit();
         fm.beginTransaction().add(R.id.main_container, ticketFragment, "4").hide(ticketFragment).commit();
         fm.beginTransaction().add(R.id.main_container, profileFragment, "5").hide(profileFragment).commit();
         fm.executePendingTransactions();
-
-        //buggy switching from launch fix
-        active = homeFragment_user;
     }
 
     @SuppressLint("NewApi")
@@ -88,7 +95,6 @@ public class NavigationActivity extends AppCompatActivity {
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.main_toolbar);
         setSupportActionBar(toolbar);
         dl = findViewById(R.id.drawerLayout);
-        showButton = findViewById(R.id.bt_menu_show);
         legendButton = findViewById(R.id.legend_show);
         legendButton.setOnClickListener(v -> HomeFragment_User.stationLegendReminder.show());
         navname = findViewById(R.id.nameToolbar);

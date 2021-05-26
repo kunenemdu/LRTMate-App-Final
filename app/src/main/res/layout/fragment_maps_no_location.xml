@@ -3,13 +3,12 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/maps_drawerLayout"
+    android:id="@+id/maps_drawerLayout_no_loc"
     android:background="@color/black"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginStart="0dp"
-    android:layout_marginEnd="0dp"
-    tools:context=".MapsNewer">
+    android:elevation="5dp"
+    tools:context=".Maps_No_Location_Access">
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -26,6 +25,15 @@
                 android:name="com.google.android.gms.maps.SupportMapFragment"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/setLocation_IMG"
+                    android:translationY="-22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_set_location"
+                    app:tint="@color/quantum_lightblue" />
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
@@ -152,7 +160,6 @@
 
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:layout_width="match_parent"
-            android:visibility="invisible"
             android:layout_height="match_parent">
 
             <androidx.cardview.widget.CardView

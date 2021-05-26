@@ -94,7 +94,7 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
     private static final String TAG = HomeFragment_User.class.getSimpleName();
     //TextView locText;
     Location mLocation;
-    MapsNewer mapsNewer = new MapsNewer();
+    Maps_No_Location_Access mapsFullAccess = new Maps_No_Location_Access();
     LatLng currentLatLngLocation;
     GoogleMap gMap;
     GlobalProperties properties = new GlobalProperties();

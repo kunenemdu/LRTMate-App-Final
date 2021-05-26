@@ -40,4 +40,9 @@ public class Bus_3 extends Bus {
 
         return busStops;
     }
+
+    @Override
+    public void setName(int name) {
+        super.setName(3);
+    }
 }

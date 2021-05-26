@@ -232,6 +232,7 @@
                             android:layout_width="@dimen/modes"
                             android:layout_height="wrap_content"
                             android:layout_margin="3dp"
+                            android:id="@+id/walkingMode"
                             app:cardCornerRadius="25dp">
 
                             <ImageView
@@ -264,6 +265,7 @@
                             android:layout_width="@dimen/modes"
                             android:layout_height="wrap_content"
                             android:layout_margin="3dp"
+                            android:id="@+id/lrtMode"
                             app:cardCornerRadius="25dp">
 
                             <ImageView
@@ -280,6 +282,7 @@
                             android:layout_width="@dimen/modes"
                             android:layout_height="wrap_content"
                             android:layout_margin="3dp"
+                            android:id="@+id/busMode"
                             app:cardCornerRadius="25dp">
 
                             <ImageView
@@ -296,6 +299,7 @@
                             android:layout_width="@dimen/modes"
                             android:layout_height="wrap_content"
                             android:layout_margin="3dp"
+                            android:id="@+id/bikeMode"
                             app:cardCornerRadius="25dp">
 
                             <ImageView

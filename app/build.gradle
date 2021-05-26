@@ -52,6 +52,7 @@ android {
 }
 
 dependencies {
+    implementation 'com.github.mancj:MaterialSearchBar:0.8.5'
     implementation("com.tomtom.online:sdk-routing:2.4807")
     implementation 'com.google.maps.android:android-maps-utils:0.5+'
     implementation 'com.google.android:flexbox:1.1.0'

@@ -17,4 +17,14 @@ public class Bus_153 extends Bus{
         busStops.add(new Moka().addStation());
         return busStops;
     }
+
+    @Override
+    public void setName(int name) {
+        this.name = 153;
+    }
+
+    @Override
+    public void setStops(ArrayList<Station> stops) {
+        this.stops = getStops();
+    }
 }

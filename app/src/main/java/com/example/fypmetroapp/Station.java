@@ -9,14 +9,23 @@ public class Station {
     String name;
     LatLng position;
     String type;
-    String bus;
+    ArrayList<Bus> buses;
+    ArrayList<Bus> connects_to;
 
-    public String getBus() {
-        return bus;
+    public ArrayList<Bus> getConnects_to() {
+        return connects_to;
     }
 
-    public void setBus(String bus) {
-        this.bus = bus;
+    public void setConnects_to(ArrayList<Bus> connects_to) {
+        this.connects_to = connects_to;
+    }
+
+    public ArrayList<Bus> getBuses() {
+        return buses;
+    }
+
+    public void setBuses(ArrayList<Bus> buses) {
+        this.buses = buses;
     }
 
     public Station addStation () {

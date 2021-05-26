@@ -17,22 +17,16 @@
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="40dp"
+                android:layout_width="45dp"
                 android:layout_height="45dp"
                 android:rotation="180"
                 android:src="@drawable/ic_sub_left"
                 app:tint="@color/black" />
 
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="45dp"
-                android:rotationY="180"
-                android:src="@drawable/ic_arrow_bend_right_up"
-                app:tint="@color/black" />
 
         </LinearLayout>
 

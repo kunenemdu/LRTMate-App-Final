@@ -83,10 +83,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import static android.graphics.Color.TRANSPARENT;
@@ -97,7 +95,7 @@ public class HomeFragment_User extends Fragment implements LocationListener {
     private static final String TAG = HomeFragment_User.class.getSimpleName();
     //TextView locText;
     Location mLocation;
-    MapsNewer mapsNewer = new MapsNewer();
+    Maps_No_Location_Access mapsFullAccess = new Maps_No_Location_Access();
     LatLng currentLatLngLocation;
     GoogleMap gMap;
     GlobalProperties properties = new GlobalProperties();
@@ -765,8 +763,7 @@ public class HomeFragment_User extends Fragment implements LocationListener {
     }
 
     @SuppressLint("NewApi")
-    static void update_favourites() {
-        String name, location;
+    public static void update_favourites() {
         if (HomeFragment_User.preferences.contains("first")) {
             ArrayList<String> strings = new ArrayList<>();
             Set<String> a = preferences.getStringSet("first", null);

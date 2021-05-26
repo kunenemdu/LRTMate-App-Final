@@ -1,9 +1,20 @@
 package com.example.fypmetroapp;
 
+import com.google.android.gms.maps.model.LatLng;
+
 public class Origin {
     String origin;
     String name;
     String address;
+    LatLng position;
+
+    public LatLng getPosition() {
+        return position;
+    }
+
+    public void setPosition(LatLng position) {
+        this.position = position;
+    }
 
     public String getAddress() {
         return address;

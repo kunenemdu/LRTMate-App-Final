@@ -57,13 +57,34 @@
                     android:layout_height="1dp"
                     android:background="@color/quantum_grey200" />
 
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="?attr/actionBarSize"
-                    android:gravity="center_vertical"
-                    android:text="12 min away"
-                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                    android:textColor="@color/black" />
+                    android:orientation="horizontal"
+                    android:weightSum="4.5"
+                    android:paddingHorizontal="5dp"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="?attr/actionBarSize"
+                        android:layout_weight="4.5"
+                        android:gravity="center_vertical"
+                        android:id="@+id/distanceText"
+                        android:text="12 min away"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                        android:textColor="@color/black" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="?attr/actionBarSize"
+                        android:gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:id="@+id/open"
+                        android:text="Open"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                        android:textColor="@color/normal_green" />
+
+                </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
@@ -86,7 +107,6 @@
                             android:layout_width="wrap_content"
                             android:layout_height="?attr/actionBarSize"
                             android:background="@android:color/transparent"
-                            android:tint="@color/quantum_grey400"
                             app:srcCompat="@drawable/ic_location" />
 
                         <View
@@ -113,7 +133,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="?attr/actionBarSize"
                             android:background="@android:color/transparent"
-                            android:tint="@color/quantum_grey400"
+                            android:tint="@color/black"
                             android:src="@drawable/ic_phone_" />
 
                         <View
@@ -124,34 +144,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="center_vertical"
-                            android:text="(415) 349-0942"
-                            android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                            android:textColor="@color/quantum_greyblack1000" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageButton
-                            android:layout_width="wrap_content"
-                            android:layout_height="?attr/actionBarSize"
-                            android:background="@android:color/transparent"
-                            android:tint="@color/quantum_grey400"
-                            android:src="@drawable/ic_schedule" />
-
-                        <View
-                            android:layout_width="15dp"
-                            android:layout_height="0dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:text="Wed, 10 AM - 9 PM"
+                            android:id="@+id/txtPhoneNum"
                             android:textAppearance="@style/TextAppearance.AppCompat.Medium"
                             android:textColor="@color/quantum_greyblack1000" />
 
