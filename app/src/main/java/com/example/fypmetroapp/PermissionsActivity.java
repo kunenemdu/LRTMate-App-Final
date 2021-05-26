@@ -11,20 +11,28 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.util.Log;
 
-public class PermissionsActivity extends AppCompatActivity {
+public class PermissionsActivity extends AppCompatActivity implements LocationListener {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 0;
     private boolean permissionLocation = false;
     private boolean permissionDenied = false;
     int perms;
+    String provider;
+    LocationManager locationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +40,10 @@ public class PermissionsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_permissions);
         //getSupportActionBar().hide();
         perms = 0;
-        requestLocation();
+        //requestLocation();
+        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, false);
     }
 
     public int getPerms() {
@@ -45,13 +56,15 @@ public class PermissionsActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        if (getPerms() == 0) {
-            requestLocation();
-        }
-        else if (getPerms() == 1)
-            startSplashActivity();
+//        if (getPerms() == 0) {
+//            requestLocation();
+//        }
+//        else if (getPerms() == 1)
+//            startSplashActivity();
         super.onStart();
     }
+
+
 
     private void requestLocation () {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -147,5 +160,22 @@ public class PermissionsActivity extends AppCompatActivity {
     private void showMissingPermissionError() {
         PermissionUtils.PermissionDeniedDialog denied = new PermissionUtils.PermissionDeniedDialog();
         denied.show(getSupportFragmentManager(), "dialog");
+    }
+
+    @Override
+    public void onLocationChanged(@NonNull Location location) {
+    }
+
+    @Override
+    public void onProviderEnabled(@NonNull String provider) {
+        Log.e("enabled", provider);
+        requestLocation();
+    }
+
+    @Override
+    public void onProviderDisabled(@NonNull String provider) {
+        Log.e("not enabled", provider);
+        startSplashActivity();
+        finish();
     }
 }

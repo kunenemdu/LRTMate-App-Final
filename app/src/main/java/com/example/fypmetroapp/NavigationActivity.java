@@ -1,12 +1,19 @@
 package com.example.fypmetroapp;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,12 +29,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
-public class NavigationActivity extends AppCompatActivity {
+public class NavigationActivity extends AppCompatActivity implements LocationListener {
 
     final Fragment mapsNewer = new MapsNewer();
     final Fragment profileFragment = new ProfileFragment();
@@ -35,6 +43,7 @@ public class NavigationActivity extends AppCompatActivity {
     final Fragment ticketFragment = new TicketFragment();
     final Fragment homeFragment_user = new HomeFragment_User();
     final Fragment homeFragment_driver = new HomeFragment_Driver();
+    final Fragment homeFragment_noLocation = new NoLocationAccess();
     static FragmentManager fm;
     Fragment active;
     private DrawerLayout dl;
@@ -47,6 +56,8 @@ public class NavigationActivity extends AppCompatActivity {
     SharedPreferences preferences;
     public static Activity activity;
     BottomNavigationView navigation;
+    String provider;
+    LocationManager locationManager;
 
 
     @Override
@@ -66,20 +77,38 @@ public class NavigationActivity extends AppCompatActivity {
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
         preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         role = preferences.getString("role", null);
+        Log.e("nav", getLocalClassName());
 
+        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, false);
+        //buggy switching from launch fix
+        //active = homeFragment_user;
+    }
+
+    private void startnormal() {
         fm.beginTransaction().add(R.id.main_container, mapsNewer, "1").hide(mapsNewer).commit();
         if (role.equals("User")) {
             fm.beginTransaction().add(R.id.main_container, homeFragment_user, "2").commit();
+            active = homeFragment_user;
         } else if (role.equals("Driver")) {
             fm.beginTransaction().add(R.id.main_container, homeFragment_driver, "3").commit();
+            active = homeFragment_driver;
         }
         fm.beginTransaction().add(R.id.main_container, userprefs, "6").hide(userprefs).commit();
         fm.beginTransaction().add(R.id.main_container, ticketFragment, "4").hide(ticketFragment).commit();
         fm.beginTransaction().add(R.id.main_container, profileFragment, "5").hide(profileFragment).commit();
         fm.executePendingTransactions();
+    }
 
-        //buggy switching from launch fix
-        active = homeFragment_user;
+    private void startnolocation() {
+        //if location off
+        fm.beginTransaction().add(R.id.main_container, homeFragment_noLocation, "1").commit();
+        active = homeFragment_noLocation;
+        fm.beginTransaction().add(R.id.main_container, userprefs, "6").hide(userprefs).commit();
+        fm.beginTransaction().add(R.id.main_container, ticketFragment, "4").hide(ticketFragment).commit();
+        fm.beginTransaction().add(R.id.main_container, profileFragment, "5").hide(profileFragment).commit();
+        fm.executePendingTransactions();
     }
 
     @SuppressLint("NewApi")
@@ -228,5 +257,22 @@ public class NavigationActivity extends AppCompatActivity {
             moveTaskToBack(false);
             super.onBackPressed();
         }
+    }
+
+    @Override
+    public void onLocationChanged(@NonNull Location location) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(@NonNull String provider) {
+        Log.e("enabled", provider);
+        startnormal();
+    }
+
+    @Override
+    public void onProviderDisabled(@NonNull String provider) {
+        Log.e("disabled", provider);
+        startnolocation();
     }
 }
