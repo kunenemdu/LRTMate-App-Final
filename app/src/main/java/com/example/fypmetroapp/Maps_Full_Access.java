@@ -2611,19 +2611,26 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
 //            for (Station station: bus.getStops()) {}
 //                Log.e(String.valueOf(bus.getName()), station.name + " at " + station.getPosition());
 //        }
-        Station dest = new Reduit().addStation();
-        Station qb = new Victoria().addStation();
-        for (Station station: allBusStations) {
-            //Log.e("station", String.valueOf(station.name));
-//            for (Bus bus: station.getBuses()) {
-//                for (Bus con : dest.getConnects_to()) {
-//                    if (bus.getName() == (con.getName())) {
-//                        Log.e("connects", String.valueOf(bus.getName()));
-//                    }
-//                }
-//            }
-        }
+        Station dest = new Moka().addStation();
+        Station ori = new QB().addStation();
+        ArrayList<Station> stats = new ArrayList<>();
+        int pos = 0;
 
+        //direct bus routing from stat -> stat
+        for (Bus bus: ori.getBuses()) {
+            for (Bus bus2 : dest.getBuses()) {
+                if (bus.getName() == (bus2.getName())) {
+                    Log.e("should take", "" + bus2.getName());
+                    for (Station station: bus2.getStops()) {
+                        if (station.getName().equals(dest.getName())) {
+                            Log.e("from", ori.getName());
+                            Log.e("and get off at", station.getName());
+                            //Log.e("from", bus2.getStops().get(bus2.getStops().size()-1).getName());
+                        }
+                    }
+                }
+            }
+        }
 //        for (Bus bus: dest.getConnects_to()) {
 //            for (Bus bus_qb: qb.getConnects_to()) {
 //                if (bus.equals(bus_qb)) {
@@ -2634,23 +2641,27 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         ArrayList<Station> buseshere = new ArrayList<>();
         int ridestops = 0;
         for (Bus bus: dest.getBuses()) {
-            for (Station station: bus.getStops()) {
-                double dist = SphericalUtil.computeDistanceBetween(qb.getPosition(), station.getPosition());
-                Log.e("taking " + bus.getName() + " to", station.name + " " + String.valueOf(dist));
-                if (dist < 100) {
-                    ridestops += (bus.getStops().indexOf(station));
-                    Log.e("should hop on at", station.name + " and take: " + bus.getName());
-                    Log.e("ride ", ridestops + " stops");
-                }
-                else {
-                    buseshere.clear();
-                    buseshere.add(bus.getStops().get(bus.getStops().size()-1));
-                }
-            }
+//            for (Station station: allBusStations) {
+//                for (Bus bus1: station.getBuses()) {
+//                    Log.e("take", bus1.getName() + " at " + station.getName());
+//                    if (dest.getBuses().contains(bus1.getName())) {
+//                        Log.e("get off", "at " + station.getName() + bus.getName());
+//                    }
+//                }
+//            }
+//            for (Station station: bus.getStops()) {
+//                double dist = SphericalUtil.computeDistanceBetween(ori.getPosition(), station.getPosition());
+//                Log.e("taking " + bus.getName() + " to", station.name + " " + String.valueOf(dist));
+//                if (dist < 100) {
+//                    Log.e("should hop on at", station.name + " and take: " + bus.getName());
+//                    Log.e("ride ", ridestops + " stops");
+//                }
+//                else {
+//                    buseshere.clear();
+//                    buseshere.add(bus.getStops().get(bus.getStops().size()-1));
+//                }
+//            }
         }
-
-        for (Station station: buseshere)
-            Log.e("statssss", station.getName());
 
         Station start = new RoseHill().addStation();
         Location start_loc = create(start.getPosition());
