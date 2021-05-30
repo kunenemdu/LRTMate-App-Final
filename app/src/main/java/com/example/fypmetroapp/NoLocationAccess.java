@@ -137,8 +137,6 @@ public class NoLocationAccess extends Fragment {
                             .hide(NoAccess.active)
                             .show(maps_noloc)
                             .commit();
-                    NoAccess.active = maps_noloc;
-                    NoAccess.navigation.setSelectedItemId(R.id.navigation_nearMe);
                     break;
             }
         }

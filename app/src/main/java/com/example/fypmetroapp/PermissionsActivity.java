@@ -49,7 +49,7 @@ public class PermissionsActivity extends AppCompatActivity implements LocationLi
         }
         else if (isLocationEnabled(this) == false) {
             Log.e("not", "on");
-            startSplashActivity();
+            requestLocation();
         }
     }
 
