@@ -391,7 +391,7 @@
 //    }
 //
 //    //TODO: ADD RAILSTATIONS WITH LATLNG
-//    //add LRT station markers to map
+//    //add LRT station_bus markers to map
 //    private void addRailStations() {
 //        //custom marker size
 //        int height = 100;

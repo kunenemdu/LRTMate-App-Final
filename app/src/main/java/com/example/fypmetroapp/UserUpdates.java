@@ -4,7 +4,6 @@ import android.location.Location;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import java.sql.Time;
 import java.util.ArrayList;
 
 public class UserUpdates {
@@ -25,6 +24,33 @@ public class UserUpdates {
     public int arrives_in;
     public static ArrayList<StationFence> foundFences;
     public static Station previous_stat;
+    public double best_journey_time;
+    public int alt_journey_time;
+    double bus_interval;
+
+    public double getBus_interval() {
+        return bus_interval;
+    }
+
+    public void setBus_interval(double bus_interval) {
+        this.bus_interval = bus_interval;
+    }
+
+    public double getBest_journey_time() {
+        return best_journey_time;
+    }
+
+    public void setBest_journey_time(double best_journey_time) {
+        this.best_journey_time = best_journey_time;
+    }
+
+    public int getAlt_journey_time() {
+        return alt_journey_time;
+    }
+
+    public void setAlt_journey_time(int alt_journey_time) {
+        this.alt_journey_time = alt_journey_time;
+    }
 
     public int getDistance_to_prev_station() {
         return distance_to_prev_station;

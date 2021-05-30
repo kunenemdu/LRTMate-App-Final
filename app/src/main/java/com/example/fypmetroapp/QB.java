@@ -12,23 +12,9 @@ public class QB extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.2653072, 57.4783713);
         station.buses = getBuses();
-        station.connects_to = getConnects_to();
         return station;
     }
 
-    @Override
-    public ArrayList<Bus> getConnects_to() {
-        ArrayList<Bus> connects = new ArrayList<>();
-        connects.add(new Bus_153());
-        connects.add(new Bus_163());
-        connects.add(new Bus_3());
-        return connects;
-    }
-
-    @Override
-    public void setConnects_to(ArrayList<Bus> connects_to) {
-        super.setConnects_to(getConnects_to());
-    }
     @Override
     public ArrayList<Bus> getBuses() {
         ArrayList<Bus> buses = new ArrayList<>();

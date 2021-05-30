@@ -6,6 +6,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Criteria;
+import android.location.Criteria;
+import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -88,6 +93,7 @@ public class NavigationActivity extends AppCompatActivity {
         fm.beginTransaction().add(R.id.main_container, profileFragment, "5").hide(profileFragment).commit();
         fm.executePendingTransactions();
     }
+
 
     @SuppressLint("NewApi")
     @Override

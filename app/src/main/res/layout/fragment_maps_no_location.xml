@@ -37,6 +37,17 @@
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+        <com.mancj.materialsearchbar.MaterialSearchBar
+            style="@style/MaterialSearchBarLight"
+            app:mt_speechMode="true"
+            app:mt_hint="Where to today?"
+            app:mt_maxSuggestionsCount="2"
+            android:layout_margin="10dp"
+            android:visibility="invisible"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/searchBar" />
+
         <!--    place details sheet-->
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:layout_width="match_parent"

@@ -10,13 +10,22 @@ public class Station {
     LatLng position;
     String type;
     ArrayList<Bus> buses;
-    ArrayList<Bus> connects_to;
+    ArrayList<Station> connects_to;
+    ArrayList<LRT> lines;
 
-    public ArrayList<Bus> getConnects_to() {
+    public ArrayList<LRT> getLines() {
+        return lines;
+    }
+
+    public void setLines(ArrayList<LRT> lines) {
+        this.lines = lines;
+    }
+
+    public ArrayList<Station> getConnects_to() {
         return connects_to;
     }
 
-    public void setConnects_to(ArrayList<Bus> connects_to) {
+    public void setConnects_to(ArrayList<Station> connects_to) {
         this.connects_to = connects_to;
     }
 

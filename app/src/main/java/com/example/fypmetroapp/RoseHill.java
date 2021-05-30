@@ -10,6 +10,7 @@ public class RoseHill extends Station{
         station.name = "Rose Hill Central";
         station.type = "L";
         station.position = new LatLng(-20.2421818, 57.4758875);
+        station.buses = getBuses();
         return station;
     }
 }

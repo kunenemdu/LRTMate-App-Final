@@ -706,7 +706,7 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
             FlexboxLayout flexboxBuses = table_buses.findViewById(R.id.flexboxBuses);
             flexboxBuses.removeAllViews();
 
-            //show buses at station
+            //show buses at station_bus
             for (int i = 0; i < result.length(); i++) {
                 aTime = result.getJSONObject(i);
 

@@ -9,24 +9,10 @@ public class Reduit extends Station {
     public Station addStation() {
         Station station = new Station();
         station.name = "Reduit";
-        station.type = "B";
+        station.type = "BUS";
         station.position = new LatLng(-20.232312, 57.498751);
         station.buses = getBuses();
-        station.connects_to = getConnects_to();
         return station;
-    }
-
-    @Override
-    public ArrayList<Bus> getConnects_to() {
-        ArrayList<Bus> connects = new ArrayList<>();
-        connects.add(new Bus_153());
-        connects.add(new Bus_163());
-        return connects;
-    }
-
-    @Override
-    public void setConnects_to(ArrayList<Bus> connects_to) {
-        super.setConnects_to(getConnects_to());
     }
 
     @Override
@@ -39,6 +25,6 @@ public class Reduit extends Station {
 
     @Override
     public void setBuses(ArrayList<Bus> buses) {
-        super.setBuses(getBuses());
+        super.setBuses(buses);
     }
 }

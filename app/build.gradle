@@ -105,3 +105,7 @@ dependencies {
     implementation 'com.github.pires:obd-java-api:1.0'
     implementation 'com.robinhood.ticker:ticker:2.0.2'
 }
+
+configurations {
+    all*.exclude group: 'com.google.code.gson', module: 'gson'
+}

@@ -133,10 +133,6 @@ public class NoLocationAccess extends Fragment {
                 case R.id.setLocation:
                     Log.e("clicked", "set");
                     Fragment maps_noloc = new Maps_No_Location_Access();
-                    fm.beginTransaction()
-                            .hide(NoAccess.active)
-                            .show(maps_noloc)
-                            .commit();
                     NoAccess.active = maps_noloc;
                     NoAccess.navigation.setSelectedItemId(R.id.navigation_nearMe);
                     break;

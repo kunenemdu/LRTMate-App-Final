@@ -30,6 +30,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -51,6 +52,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
@@ -120,6 +122,7 @@ public class HomeFragment_User extends Fragment implements LocationListener {
     boolean selected_bus = false;
     final Handler timeHandler = new Handler(Looper.getMainLooper());
     static LinearLayout favs;
+    static LinearLayout previous;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -161,147 +164,148 @@ public class HomeFragment_User extends Fragment implements LocationListener {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         // initiate progress bar and start button
-            loaderBar = (ProgressBar) getView().findViewById(R.id.loadBar);
-            loaderBar.setMax(100); //15000ms is 15s
-            loader = getView().findViewById(R.id.loaderLL);
-            main = getView().findViewById(R.id.content_home);
-            progress_ticker = getView().findViewById(R.id.progress_ticker);
-            progress_ticker.setCharacterLists(TickerUtils.provideNumberList());
-            buses_at_station = new Dialog(getActivity());
-            favs = getView().findViewById(R.id.favs);
+        loaderBar = (ProgressBar) getView().findViewById(R.id.loadBar);
+        loaderBar.setMax(100); //15000ms is 15s
+        loader = getView().findViewById(R.id.loaderLL);
+        main = getView().findViewById(R.id.content_home);
+        progress_ticker = getView().findViewById(R.id.progress_ticker);
+        progress_ticker.setCharacterLists(TickerUtils.provideNumberList());
+        buses_at_station = new Dialog(getActivity());
+        favs = getView().findViewById(R.id.favs);
+        previous = getView().findViewById(R.id.prevs);
 
-            //on load pan camera to user's location
-            LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
-            Criteria mCriteria = new Criteria();
-            String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
-            occupancy = getView().findViewById(R.id.occupancy);
-            statType = getView().findViewById(R.id.stationType);
-            status = getView().findViewById(R.id.currentStatus);
-            proximity = getView().findViewById(R.id.proximity);
-            begin = getView().findViewById(R.id.begin_btn);
-            stop = getView().findViewById(R.id.stop_btn);
-            init = getView().findViewById(R.id.init);
+        //on load pan camera to user's location
+        LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
+        Criteria mCriteria = new Criteria();
+        String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
+        occupancy = getView().findViewById(R.id.occupancy);
+        statType = getView().findViewById(R.id.stationType);
+        status = getView().findViewById(R.id.currentStatus);
+        proximity = getView().findViewById(R.id.proximity);
+        begin = getView().findViewById(R.id.begin_btn);
+        stop = getView().findViewById(R.id.stop_btn);
+        init = getView().findViewById(R.id.init);
 
-            cur_stationTicker = getView().findViewById(R.id.curStation);
-            cur_stationTicker.setCharacterLists(TickerUtils.provideAlphabeticalList());
-            next_arrivalTicker = getView().findViewById(R.id.nextArrival);
-            next_arrivalTicker.setCharacterLists(TickerUtils.provideNumberList());
+        cur_stationTicker = getView().findViewById(R.id.curStation);
+        cur_stationTicker.setCharacterLists(TickerUtils.provideAlphabeticalList());
+        next_arrivalTicker = getView().findViewById(R.id.nextArrival);
+        next_arrivalTicker.setCharacterLists(TickerUtils.provideNumberList());
 
-            proximity.setText("Waiting to");
-            cur_stationTicker.setText("Receive Updates...");
-            status.setText("Waiting to Receive Updates...");
-            occupancy.setText("Waiting to Receive Updates...");
-            statType.setText("Waiting to");
-            next_arrivalTicker.setText("Receive Updates...");
+        proximity.setText("Waiting to");
+        cur_stationTicker.setText("Receive Updates...");
+        status.setText("Waiting to Receive Updates...");
+        occupancy.setText("Waiting to Receive Updates...");
+        statType.setText("Waiting to");
+        next_arrivalTicker.setText("Receive Updates...");
 
-            status.setTextColor(Color.BLACK);
-            occupancy.setTextColor(Color.BLACK);
-            proximity.setTextColor(Color.BLACK);
-            cur_stationTicker.setTextColor(Color.BLUE);
+        status.setTextColor(Color.BLACK);
+        occupancy.setTextColor(Color.BLACK);
+        proximity.setTextColor(Color.BLACK);
+        cur_stationTicker.setTextColor(Color.BLUE);
 
-            begin.setOnClickListener(track_buttons);
-            stop.setOnClickListener(track_buttons);
+        begin.setOnClickListener(track_buttons);
+        stop.setOnClickListener(track_buttons);
 
-            //Log.e("prefs are", preferences.getAll().toString());
-            stationLegendReminder = new Dialog(getActivity());
+        //Log.e("prefs are", preferences.getAll().toString());
+        stationLegendReminder = new Dialog(getActivity());
 
-            Handler legend = new Handler();
-            legend.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    boolean legend_seen = preferences.getBoolean("legend_seen", false);
-                    role = preferences.getString("role", null);
-                    if (!role.equals("Driver")) {
-                        if (legend_seen == false)
-                            showStationsLegend(true);
-                        else
-                            showStationsLegend(false);
-                    }
+        Handler legend = new Handler();
+        legend.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                boolean legend_seen = preferences.getBoolean("legend_seen", false);
+                role = preferences.getString("role", null);
+                if (!role.equals("Driver")) {
+                    if (legend_seen == false)
+                        showStationsLegend(true);
+                    else
+                        showStationsLegend(false);
                 }
-            }, 5000);
+            }
+        }, 5000);
 
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    new Thread(new Runnable() {
-                        public void run() {
-                            while (progressStatus < 100) {
-                                progressStatus += 5;
-                                // Update the progress bar and display the
-                                //current value in the text view
-                                progress_handler.post(new Runnable() {
-                                    public void run() {
-                                        loaderBar.setProgress(progressStatus);
-                                        progress_ticker.setText(progressStatus + "/"+ loaderBar.getMax());
-                                        if (progressStatus > 40)
-                                            init.setText("Setting Variables...");
-                                        if (progressStatus == 75)
-                                            init.setText("Finishing...");
-                                    }
-                                });
-                                try {
-                                    // Sleep for 200 milliseconds.
-                                    Thread.sleep(200);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                new Thread(new Runnable() {
+                    public void run() {
+                        while (progressStatus < 100) {
+                            progressStatus += 5;
+                            // Update the progress bar and display the
+                            //current value in the text view
+                            progress_handler.post(new Runnable() {
+                                public void run() {
+                                    loaderBar.setProgress(progressStatus);
+                                    progress_ticker.setText(progressStatus + "/"+ loaderBar.getMax());
+                                    if (progressStatus > 40)
+                                        init.setText("Setting Variables...");
+                                    if (progressStatus == 75)
+                                        init.setText("Finishing...");
                                 }
-                            }
-                            loaderBar.setVisibility(View.INVISIBLE);
-                            loaderBar.clearAnimation();
-                            loader.setVisibility(View.INVISIBLE);
-                        }
-                    }).start();
-
-                    Handler handler = new Handler();
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            main.setVisibility(View.VISIBLE);
+                            });
                             try {
-                                mLocation = manager.getLastKnownLocation(provider);
-                                if (mLocation != null) {
-
-                                    //LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-                                    //String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
-                                    //locText.setText(userLocation);
-                                }
-
-                                SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-                                String role = pref.getString("role", null);
-
-                                Dexter.withActivity(getActivity())
-                                        .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                                        .withListener(new PermissionListener() {
-                                            @Override
-                                            public void onPermissionGranted(PermissionGrantedResponse response) {
-                                                if (role.equals("User")) {
-
-                                                }
-                                                SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
-                                                        .findFragmentById(R.id.home_map_frags);
-                                                mapFragment.getMapAsync(HomeFragment_User.this::onMapReady);
-                                                GeoFireConfig();
-                                                GeoFireConfigStations();
-                                            }
-
-                                            @Override
-                                            public void onPermissionDenied(PermissionDeniedResponse response) {
-                                                Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
-                                            }
-
-                                            @Override
-                                            public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-
-                                            }
-                                        }).check();
-                            } catch (Exception e) {
-                                Log.e("exc", e.getMessage());
+                                // Sleep for 200 milliseconds.
+                                Thread.sleep(200);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
                             }
                         }
-                    }, 10000);
-                }
-            });
-            update_favourites();
+                        loaderBar.setVisibility(View.INVISIBLE);
+                        loaderBar.clearAnimation();
+                        loader.setVisibility(View.INVISIBLE);
+                    }
+                }).start();
+
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        main.setVisibility(View.VISIBLE);
+                        try {
+                            mLocation = manager.getLastKnownLocation(provider);
+                            if (mLocation != null) {
+
+                                //LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+                                //String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
+                                //locText.setText(userLocation);
+                            }
+
+                            SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
+                            String role = pref.getString("role", null);
+
+                            Dexter.withActivity(getActivity())
+                                    .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    .withListener(new PermissionListener() {
+                                        @Override
+                                        public void onPermissionGranted(PermissionGrantedResponse response) {
+                                            if (role.equals("User")) {
+
+                                            }
+                                            SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
+                                                    .findFragmentById(R.id.home_map_frags);
+                                            mapFragment.getMapAsync(HomeFragment_User.this::onMapReady);
+                                            GeoFireConfig();
+                                            GeoFireConfigStations();
+                                        }
+
+                                        @Override
+                                        public void onPermissionDenied(PermissionDeniedResponse response) {
+                                            Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
+                                        }
+
+                                        @Override
+                                        public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+
+                                        }
+                                    }).check();
+                        } catch (Exception e) {
+                            Log.e("exc", e.getMessage());
+                        }
+                    }
+                }, 10000);
+            }
+        });
+        update_favourites();
     }
 
     @SuppressLint("NewApi")
@@ -665,6 +669,7 @@ public class HomeFragment_User extends Fragment implements LocationListener {
     @SuppressLint("MissingPermission")
     @Override
     public void onResume() {
+        update_previous();
         //locationManager.requestLocationUpdates(provider, 500, 15, this);
         super.onResume();
     }
@@ -730,7 +735,7 @@ public class HomeFragment_User extends Fragment implements LocationListener {
             FlexboxLayout flexboxBuses = table_buses.findViewById(R.id.flexboxBuses);
             flexboxBuses.removeAllViews();
 
-            //show buses at station
+            //show buses at station_bus
             for (int i = 0; i < result.length(); i++) {
                 aTime = result.getJSONObject(i);
 
@@ -775,6 +780,7 @@ public class HomeFragment_User extends Fragment implements LocationListener {
                 if (s.contains(" ")) {
                     TextView tv = favs.getRootView().findViewById(R.id.first);
                     tv.setText(s);
+                    tv.setTextSize(14.5f);
                 }
             }
         }
@@ -790,8 +796,59 @@ public class HomeFragment_User extends Fragment implements LocationListener {
                 if (s.contains(" ")) {
                     TextView tv = favs.getRootView().findViewById(R.id.second);
                     tv.setText(s);
+                    tv.setTextSize(14.5f);
                 }
             }
         }
+    }
+
+    static void update_previous () {
+        TinyDB tinyDB = Maps_Full_Access.tinyDB;
+        ArrayList<String> prevs = tinyDB.getListString("Prev");
+        if (prevs != null) {
+            String instruct = "";
+            for (String ins: prevs) {
+                instruct += ins;
+            }
+            TextView tv = previous.getRootView().findViewById(R.id.prev1);
+            tv.setText(instruct);
+            tv.setTextSize(14.5f);
+            tv.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Toast.makeText(previous.getContext(), "Follow this route again!", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+        else {
+            Log.e("nothing", "in");
+        }
+    }
+
+    static void update_intervals () {
+        TinyDB tinyDB = Maps_Full_Access.tinyDB;
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        DocumentReference ref = firebaseFirestore
+                .collection("stationdetails")
+                .document("arrivals")
+                .collection("BUS")
+                .document("intervals");
+
+        ref.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if (task.isSuccessful()) {
+                    DocumentSnapshot snapshot = task.getResult();
+                    double bus_interval_3 = (snapshot.getDouble(String.valueOf(new Bus_3().getName())));
+                    double bus_interval_163 = (snapshot.getDouble(String.valueOf(new Bus_163().getName())));
+                    double bus_interval_153 = (snapshot.getDouble(String.valueOf(new Bus_153().getName())));
+
+                    tinyDB.putDouble("3", bus_interval_3);
+                    tinyDB.putDouble("163", bus_interval_163);
+                    tinyDB.putDouble("153", bus_interval_153);
+                    Log.e("DONE!", "UPDATED INTERVALS");
+                }
+            }
+        });
     }
 }

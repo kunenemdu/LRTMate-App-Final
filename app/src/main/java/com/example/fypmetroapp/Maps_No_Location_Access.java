@@ -177,7 +177,7 @@ public class Maps_No_Location_Access extends Fragment {
     LinearLayout llBottomSheet;
     LinearLayout llLRT_StationSheet_Sche;
     LinearLayout llBUS_StationSheet_Sche;
-    RelativeLayout rlDirections;
+    CardView rlDirections;
     private Polyline polyline_LRT;
     private Polyline polyline_BUS;
     private Polyline polyline_Directions;
@@ -191,7 +191,7 @@ public class Maps_No_Location_Access extends Fragment {
     ArrayList<Marker> allLRTMarkers;
     ArrayList<Marker> allBusMarkers;
     ArrayList<Marker> allMarkers;
-    ArrayList<Station> allBusStations, allLRTStations;
+    ArrayList<Station> allBusStations, allLRTStations, allStations;
     private TabAdapter adapter;
     private TabLayout tabLayout;
     private ViewPager viewPager;
@@ -256,13 +256,6 @@ public class Maps_No_Location_Access extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         preferences = this.getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-        preferences.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                Log.e("changed", "prefs");
-                HomeFragment_User.update_favourites();
-            }
-        });
         firebaseAuth = FirebaseAuth.getInstance();
         this.locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
@@ -319,7 +312,6 @@ public class Maps_No_Location_Access extends Fragment {
                 }
             }
         });
-        Log.e("prefs", preferences.getAll().toString());
         materialSearchBar.addTextChangeListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -477,9 +469,17 @@ public class Maps_No_Location_Access extends Fragment {
         initClicked_BUS_Component();
         initFollowRoute_Component();
         clickedBus = getView().findViewById(R.id.clickedBus);
-        supportMapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mainMapFrags);
-        supportMapFragment.getMapAsync(this::onMapReady);
+        //supportMapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mainMapFrags);
+        //supportMapFragment.getMapAsync(this::onMapReady);
     }
+
+    //update user's favourite locations
+    SharedPreferences.OnSharedPreferenceChangeListener listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            HomeFragment_User.update_favourites();
+        }
+    };
 
     private void buildLocationRequest() {
         locationRequest = LocationRequest
@@ -621,9 +621,14 @@ public class Maps_No_Location_Access extends Fragment {
         addRailStations();
         addBusStations();
 
-        gMap.setOnMapLongClickListener(latLng -> gMap.addMarker(new MarkerOptions()
-                .position(latLng)
-        ));
+        gMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(@NonNull LatLng latLng) {
+                Marker clicked = gMap.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .title(latLng.toString()));
+            }
+        });
 
         //TODO: MAP CLICK LISTENER
         gMap.setOnMapClickListener(latLng -> {
@@ -682,6 +687,8 @@ public class Maps_No_Location_Access extends Fragment {
         clusterManager = new ClusterManager<>(getContext(), googleMap);
         clusterRenderer = new MarkerClusterRenderer<>(getContext(), googleMap, clusterManager);
         setupClusterManager();
+        tester();
+        allStations = new ArrayList<>();
     }
 
     private void addClusterItems() {
@@ -740,7 +747,7 @@ public class Maps_No_Location_Access extends Fragment {
             String type = (String) this_marker.getTag();
             int distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, statLoc);
 
-            //instantiate the station GeoFence
+            //instantiate the station_bus GeoFence
             StationFence stationFence = new StationFence(statName, statLoc, type, distance);
             stationsFences.add(stationFence);
             /*FirebaseDatabase.getInstance()
@@ -803,7 +810,7 @@ public class Maps_No_Location_Access extends Fragment {
     }
 
     private void positionCamera(DirectionsRoute route, GoogleMap mMap) {
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(origin.getPosition(), 14.0f));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(route.legs[overview].startLocation.lat, route.legs[overview].startLocation.lng), 8));
     }
 
     private void addPolyline(DirectionsResult results, GoogleMap mMap) {
@@ -855,6 +862,7 @@ public class Maps_No_Location_Access extends Fragment {
                     .origin(origin)
                     .destination(destination)
                     .departureTime(now)
+                    .alternatives(true)
                     .await();
         } catch (ApiException | IOException | InterruptedException e) {
             e.printStackTrace();
@@ -920,9 +928,6 @@ public class Maps_No_Location_Access extends Fragment {
 
         AutocompleteSupportFragment autocompleteFragmentOrigin = (AutocompleteSupportFragment)
                 getChildFragmentManager().findFragmentById(R.id.autocomplete_origin);
-
-
-
 
         //TODO: autocomplete search customiser
         autocompleteFragmentDestination.setCountry("MU");
@@ -1000,8 +1005,6 @@ public class Maps_No_Location_Access extends Fragment {
                 Log.i("TAG", "An error occurred: " + status);
             }
         });
-
-
     }
 
     @SuppressLint("NewApi")
@@ -1026,7 +1029,6 @@ public class Maps_No_Location_Access extends Fragment {
 
     //event listener for buttons
     android.view.View.OnClickListener Buttons = new View.OnClickListener() {
-        @SuppressLint("NewApi")
         @Override
         public void onClick(android.view.View v) {
             switch (v.getId()) {
@@ -1041,46 +1043,65 @@ public class Maps_No_Location_Access extends Fragment {
                     break;
                 case R.id.nearbystations:
                     ShowNearestStations();
-                    if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_HIDDEN)
-                        bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-                    if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_EXPANDED)
-                        bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                    if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_COLLAPSED)
-                        bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-                    if (rlDirections.getVisibility() == View.VISIBLE) {
-                        nearbyCardView.setVisibility(View.INVISIBLE);
-                        rlDirections.setVisibility(View.GONE);
-                    }
+                    hideAllSheets();
                     break;
                 case R.id.drivingMode:
-                    DirectionsResult results = getDirectionsDetails(origin_class.getOrigin(), destination_class.getDestination(), TravelMode.DRIVING);
-                    if (results != null) {
-                        int num = results.routes[0].legs[0].steps.length;
-                        ArrayList<String> instructions = new ArrayList<>();
-                        try {
-                            for (int i = 0; i < num; i++) {
-                                String get = results.routes[0].legs[0].steps[i].htmlInstructions;
-                                String instruction = String.valueOf(Html.fromHtml(get, Html.FROM_HTML_MODE_COMPACT));
-                                instructions.add(instruction);
-                            }
-                            ShowFollowRoute(instructions);
-                            addWalkToBusPolyline(results, gMap);
-                            positionCamera(results.routes[overview], gMap);
-                        }
-                        catch (Exception e) {
-                            Log.e("error here", e.getMessage());
-                        }
-                        addPolyline(results, gMap);
-                        positionCamera(results.routes[overview], gMap);
-                        walkToStation();
-                        addMarkersToMap(results, gMap);
-                        bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
-                        bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-                        nearbyCardView.setVisibility(View.INVISIBLE);
-                        bottomSheetBehavior_Follow_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-                        rlDirections.setVisibility(View.INVISIBLE);
-                    }
+                    doDrivingInstructions();
                     break;
+            }
+        }
+    };
+
+    private void hideAllSheets () {
+        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_HIDDEN)
+            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_EXPANDED)
+            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_COLLAPSED)
+            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+        if (rlDirections.getVisibility() == View.VISIBLE) {
+            nearbyCardView.setVisibility(View.INVISIBLE);
+            rlDirections.setVisibility(View.GONE);
+        }
+    }
+
+    @SuppressLint("NewApi")
+    private void doDrivingInstructions () {
+        DirectionsResult results = getDirectionsDetails(origin_class.getOrigin(), destination_class.getDestination(), TravelMode.WALKING);
+        if (results != null) {
+            int num = results.routes[0].legs[0].steps.length;
+            ArrayList<String> instructions = new ArrayList<>();
+            try {
+                for (int i = 0; i < num; i++) {
+                    String get = results.routes[0].legs[0].steps[i].htmlInstructions;
+                    String instruction = String.valueOf(Html.fromHtml(get, Html.FROM_HTML_MODE_COMPACT));
+                    instructions.add(instruction);
+                }
+                ShowFollowRoute(instructions);
+                addWalkToBusPolyline(results, gMap);
+                positionCamera(results.routes[overview], gMap);
+            }
+            catch (Exception e) {
+                Log.e("error here", e.getMessage());
+            }
+            addPolyline(results, gMap);
+            positionCamera(results.routes[overview], gMap);
+            walkToStation();
+            addMarkersToMap(results, gMap);
+            bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
+            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
+            nearbyCardView.setVisibility(View.INVISIBLE);
+            bottomSheetBehavior_Follow_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+            rlDirections.setVisibility(View.INVISIBLE);
+        }
+        ArrayList<Station> stations_to_dest = new ArrayList<>();
+        gMap.setTrafficEnabled(false);
+
+        for (Station station: allLRTStations) {
+            int distance = (int) SphericalUtil.computeDistanceBetween(station.getPosition(), destination.getPosition());
+            if (distance < 1000) {
+                stations_to_dest.add(station);
+                Log.e("Station lrt:", station.name);
             }
         }
     };
@@ -1451,7 +1472,7 @@ public class Maps_No_Location_Access extends Fragment {
         //sort by closest distance
         Collections.sort(nearbyStations, new SortByDistance());
         int green = getResources().getColor(R.color.quantum_googgreen);
-        //inflate each LRT station to view
+        //inflate each LRT station_bus to view
         for (int x = 0; x < nearbyStations.size(); x++) {
             Station station = nearbyStations.get(x);
 
@@ -1463,7 +1484,7 @@ public class Maps_No_Location_Access extends Fragment {
 
                 stopText = new TextView(mainRow.getContext());
                 stopDistanceText = new TextView(mainRow.getContext());
-                //int distance_to_nearest = (int) SphericalUtil.computeDistanceBetween(curLocation, station.distance);
+                //int distance_to_nearest = (int) SphericalUtil.computeDistanceBetween(curLocation, station_bus.distance);
                 //user distance from stops CLOSEST-TO-FARTHEST
                 //TODO: SHOW DISTANCE IN MINUTES ACCORDING TO CURRENT VEHICLE/TRANSPORT/SPEED
                 stopDistanceText.setText("\tless than: " + station.distance + "m away");
@@ -1503,7 +1524,7 @@ public class Maps_No_Location_Access extends Fragment {
                     for (int j = 0; j < stations.size(); j++) {
                         Station station1 = stations.get(j);
 
-                        if (station1.getName().equals(station.getName())) {
+                        if (station1.getName().equals(station_bus.getName())) {
                             busText.setText(String.valueOf(bus.getName()));
                         }
                     }
@@ -1537,7 +1558,7 @@ public class Maps_No_Location_Access extends Fragment {
                 txtClicked_LRT_Station.setText(marker.getTitle());
                 //draw the LRT polyline on click
                 polyline_LRT.setVisible(true);
-                //show clicked station sheet as half expanded
+                //show clicked station_bus sheet as half expanded
                 bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
 
                 //hide the rest of the bottom sheets
@@ -1565,7 +1586,7 @@ public class Maps_No_Location_Access extends Fragment {
                         }
                     }
                 }*/
-                /*show clicked station sheet as half expanded
+                /*show clicked station_bus sheet as half expanded
                 bottomSheetBehavior_BUS_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
                 hide the rest of the bottom sheets
                 bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
@@ -1654,7 +1675,7 @@ public class Maps_No_Location_Access extends Fragment {
         //sort by closest distance
         Collections.sort(nearbyStations, new SortByDistance());
 
-        //inflate each LRT station to view
+        //inflate each LRT station_bus to view
         for (int x = 0; x < nearbyStations.size(); x++) {
             Station station = nearbyStations.get(x);
 
@@ -1670,7 +1691,7 @@ public class Maps_No_Location_Access extends Fragment {
 
                 //user distance from stops CLOSEST-TO-FARTHEST
                 //TODO: SHOW DISTANCE IN MINUTES ACCORDING TO CURRENT VEHICLE/TRANSPORT/SPEED
-                //stopDistanceText.setText("~" + station.distance + "m away");
+                //stopDistanceText.setText("~" + station_bus.distance + "m away");
 
                 stopText.setText(station.name);
                 stopText.setTextAppearance(R.style.station_text);
@@ -1703,8 +1724,6 @@ public class Maps_No_Location_Access extends Fragment {
                 LayoutInflater inflater = Maps_No_Location_Access.this.getLayoutInflater();
                 TableRow mainRow = new TableRow(Maps_No_Location_Access.this.getContext());
                 String instruction = instructions.get(y);
-                if (instruction.contains("Turn right"))
-                    inflater.inflate(R.layout.route_instruction_right, mainRow);
 
                 if (instruction.contains("north"))
                     inflater.inflate(R.layout.follow_north, mainRow);
@@ -1785,13 +1804,13 @@ public class Maps_No_Location_Access extends Fragment {
         return allBUSStationNames;
     }
 
-    //get the station user clicked
+    //get the station_bus user clicked
     public void ClickedNearbyStation(String name) {
         nearbyCardView.setVisibility(View.INVISIBLE);
         if (GetAllLRTNames().contains(name)) {
             for (int i = 0; i < allLRTMarkers.size(); i++) {
                 Marker Trainmarker = allLRTMarkers.get(i);
-                //if the station name is the same as the marker call OnMarkerClick
+                //if the station_bus name is the same as the marker call OnMarkerClick
                 if (name.equals(Trainmarker.getTitle())) {
                     onMarkerClick(Trainmarker);
                 }
@@ -1799,7 +1818,7 @@ public class Maps_No_Location_Access extends Fragment {
         } else if (GetAllBUSNames().contains(name)) {
             for (int i = 0; i < allBusMarkers.size(); i++) {
                 Marker Busmarker = allBusMarkers.get(i);
-                //if the station name is the same as the marker call OnMarkerClick
+                //if the station_bus name is the same as the marker call OnMarkerClick
                 if (name.equals(Busmarker.getTitle())) {
                     if (bottomSheetBehavior_NearBy.getState() != BottomSheetBehavior.STATE_HIDDEN){
                         bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
@@ -1819,7 +1838,7 @@ public class Maps_No_Location_Access extends Fragment {
         scheTable_PL.removeAllViews();
     }
 
-    //find station times using only STATION NAME returns JSONArray
+    //find station_bus times using only STATION NAME returns JSONArray
     public void Extract_LRT_Data(Marker marker) {
         String getScheduleURL = "https://metromobile.000webhostapp.com/stationLookUp.php?statName=" + marker.getTitle();
         StringRequest stringRequest = new StringRequest(Request.Method.GET, getScheduleURL, new Response.Listener<String>() {
@@ -1932,7 +1951,7 @@ public class Maps_No_Location_Access extends Fragment {
             flexboxBuses.removeAllViews();
             flexboxFacilities.removeAllViews();
 
-            //show buses at station
+            //show buses at station_bus
             for (int i = 0; i < result.length(); i++) {
                 aTime = result.getJSONObject(i);
                 parking = aTime.getString(Config.BUS_PARKING);
@@ -1976,7 +1995,7 @@ public class Maps_No_Location_Access extends Fragment {
                     Snackbar.LENGTH_SHORT)
                     .show();*/
 
-            //show parking availability at station
+            //show parking availability at station_bus
             if (parking.equals("1")) {
                 ImageView parkingView = new ImageView(flexboxFacilities.getContext());
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -1991,7 +2010,7 @@ public class Maps_No_Location_Access extends Fragment {
                 flexboxFacilities.addView(parkingView);
             }
 
-            //show wheelchair access at station
+            //show wheelchair access at station_bus
             if (disabled.equals("1")) {
                 ImageView disabled_view = new ImageView(flexboxFacilities.getContext());
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -2007,7 +2026,7 @@ public class Maps_No_Location_Access extends Fragment {
                 flexboxFacilities.addView(disabled_view);
             }
 
-            //show bike rack availability at station
+            //show bike rack availability at station_bus
             if (bike_rack.equals("1")) {
                 ImageView bike_rack_view = new ImageView(flexboxFacilities.getContext());
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -2071,7 +2090,7 @@ public class Maps_No_Location_Access extends Fragment {
         }
     }
 
-    //add LRT station markers to map
+    //add LRT station_bus markers to map
     private void addRailStations() {
         allLRTMarkers = new ArrayList<>();
         allLRTStations = new ArrayList<>();
@@ -2101,23 +2120,25 @@ public class Maps_No_Location_Access extends Fragment {
         }
     }
 
+    private void addAllStations () {
+        addRailStations();
+        addBusStations();
+        for (Station station: allBusStations)
+            allStations.add(station);
+        for (Station station: allLRTStations)
+            allStations.add(station);
+    }
+
     //TODO: CHANGE IMPLEMENTATION OF LRT STATIONS
     private ArrayList<Station> setLrtStations () {
         ArrayList<Station> stations = new ArrayList<>();
-        Station RoseHill = new Station().setStations("Rose Hill Central", "LRT", new LatLng(-20.2421818, 57.4758875));
-        Station Vander = new Station().setStations("Vandersmeech", "LRT", new LatLng(-20.2354926, 57.473157));
-        Station BeauB = new Station().setStations("Beau Bassin", "LRT", new LatLng(-20.2266891, 57.4673957));
-        Station Barkly = new Station().setStations("Barkly", "LRT", new LatLng(-20.2209104, 57.4584639));
-        Station Coromandel = new Station().setStations("Coromandel", "LRT", new LatLng(-20.1837264, 57.4693912));
-        Station StLouis = new Station().setStations("St Louis", "LRT", new LatLng(-20.180942, 57.4767888));
-        Station PortLouis = new Station().setStations("Port Louis Victoria", "LRT", new LatLng(-20.1625125, 57.4982089));
-        stations.add(RoseHill);
-        stations.add(Vander);
-        stations.add(BeauB);
-        stations.add(Barkly);
-        stations.add(Coromandel);
-        stations.add(StLouis);
-        stations.add(PortLouis);
+        stations.add(new RoseHill().addStation());
+        stations.add(new Vander().addStation());
+        stations.add(new BeauB().addStation());
+        stations.add(new Barkly().addStation());
+        stations.add(new Corom().addStation());
+        stations.add(new StLouis().addStation());
+        stations.add(new PortLouis().addStation());
         return stations;
     }
 
@@ -2128,7 +2149,7 @@ public class Maps_No_Location_Access extends Fragment {
         gMap.setPadding(0, 0, 0, Math.round(offset * maxMapPaddingBottom));
     }
 
-    //bus station markers
+    //bus station_bus markers
     private void addBusStations () {
         allBusMarkers = new ArrayList<>();
         allBusStations = new ArrayList<>();
@@ -2259,5 +2280,93 @@ public class Maps_No_Location_Access extends Fragment {
 
         Log.e(TAG, "GPS LocationChanged");
         Log.e(TAG, "Received GPS request for " + latLng);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        preferences.registerOnSharedPreferenceChangeListener(listener);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        preferences.unregisterOnSharedPreferenceChangeListener(listener);
+    }
+
+    private void tester () {
+//        for (Bus bus: allBuses) {
+//            for (Station station_bus: bus.getStops()) {}
+//                Log.e(String.valueOf(bus.getName()), station_bus.name + " at " + station_bus.getPosition());
+//        }
+        Station dest = new Moka().addStation();
+        Station ori = new QB().addStation();
+        ArrayList<Station> stats = new ArrayList<>();
+        int pos = 0;
+
+        //direct bus routing from stat -> stat
+        for (Bus bus: ori.getBuses()) {
+            for (Bus bus2 : dest.getBuses()) {
+                if (bus.getName() == (bus2.getName())) {
+                    Log.e("should take", "" + bus2.getName());
+                    for (Station station: bus2.getStops()) {
+                        if (station.getName().equals(dest.getName())) {
+                            Log.e("from", ori.getName());
+                            Log.e("and get off at", station.getName());
+                            //Log.e("from", bus2.getStops().get(bus2.getStops().size()-1).getName());
+                        }
+                    }
+                }
+            }
+        }
+//        for (Bus bus: dest.getConnects_to()) {
+//            for (Bus bus_qb: qb.getConnects_to()) {
+//                if (bus.equals(bus_qb)) {
+//                    Log.e("QB has", String.valueOf(bus_qb.getName()));
+//                }
+//            }
+//        }
+        ArrayList<Station> buseshere = new ArrayList<>();
+        int ridestops = 0;
+        for (Bus bus: dest.getBuses()) {
+//            for (Station station_bus: allBusStations) {
+//                for (Bus bus1: station_bus.getBuses()) {
+//                    Log.e("take", bus1.getName() + " at " + station_bus.getName());
+//                    if (dest.getBuses().contains(bus1.getName())) {
+//                        Log.e("get off", "at " + station_bus.getName() + bus.getName());
+//                    }
+//                }
+//            }
+//            for (Station station_bus: bus.getStops()) {
+//                double dist = SphericalUtil.computeDistanceBetween(ori.getPosition(), station_bus.getPosition());
+//                Log.e("taking " + bus.getName() + " to", station_bus.name + " " + String.valueOf(dist));
+//                if (dist < 100) {
+//                    Log.e("should hop on at", station_bus.name + " and take: " + bus.getName());
+//                    Log.e("ride ", ridestops + " stops");
+//                }
+//                else {
+//                    buseshere.clear();
+//                    buseshere.add(bus.getStops().get(bus.getStops().size()-1));
+//                }
+//            }
+        }
+
+        Station start = new RoseHill().addStation();
+        Location start_loc = create(start.getPosition());
+        Station end = new Corom().addStation();
+        Location end_loc = create(end.getPosition());
+
+//        for (Station station_bus: allLRTStations) {
+//            double dist = SphericalUtil.computeDistanceBetween(start.getPosition(), station_bus.getPosition());
+//            Log.e("taking " + start.getName() + " to", station_bus.name + " " + String.valueOf(dist));
+//            Log.e("bearing", String.valueOf(start_loc.bearingTo(create(station_bus.getPosition()))));
+//        }
+    }
+
+    private Location create (LatLng latLng) {
+        Location location = new Location(LocationManager.NETWORK_PROVIDER);
+        location.setLongitude(latLng.longitude);
+        location.setLatitude(latLng.latitude);
+        return location;
     }
 }

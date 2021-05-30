@@ -49,7 +49,7 @@ public class PermissionsActivity extends AppCompatActivity implements LocationLi
         }
         else if (isLocationEnabled(this) == false) {
             Log.e("not", "on");
-            startSplashActivity();
+            requestLocation();
         }
     }
 
@@ -83,6 +83,7 @@ public class PermissionsActivity extends AppCompatActivity implements LocationLi
         else {
             Log.e("disabled", "loc");
             setPerms(1);
+            startOtherActivity();
         }
     }
 
@@ -121,6 +122,11 @@ public class PermissionsActivity extends AppCompatActivity implements LocationLi
 
     private void startSplashActivity() {
         Intent loginIntent = new Intent(PermissionsActivity.this, MainActivity.class);
+        startActivity(loginIntent);
+    }
+
+    private void startOtherActivity() {
+        Intent loginIntent = new Intent(PermissionsActivity.this, NoAccess.class);
         startActivity(loginIntent);
     }
 

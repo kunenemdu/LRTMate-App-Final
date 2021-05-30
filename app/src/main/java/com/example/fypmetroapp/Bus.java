@@ -120,6 +120,8 @@ public class Bus {
     }
 
     private void togglePolyline () {
-
+        if (busPolyline.isVisible()) {
+            busPolyline.setVisible(false);
+        }
     }
 }

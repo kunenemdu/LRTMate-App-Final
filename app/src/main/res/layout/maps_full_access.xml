@@ -210,6 +210,16 @@
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <include
+                android:visibility="invisible"
+                layout="@layout/fragment_computed_routes"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
     </FrameLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

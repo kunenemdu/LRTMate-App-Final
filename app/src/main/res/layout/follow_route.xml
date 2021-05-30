@@ -16,7 +16,7 @@
         android:layout_height="match_parent"
         app:cardCornerRadius="15dp"
         app:cardPreventCornerOverlap="true"
-        android:layout_marginBottom="-10dp"
+        android:paddingBottom="?actionBarSize"
         app:cardElevation="8dp">
 
         <LinearLayout

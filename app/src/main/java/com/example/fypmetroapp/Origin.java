@@ -7,6 +7,24 @@ public class Origin {
     String name;
     String address;
     LatLng position;
+    Station station_bus;
+    Station station_lrt;
+
+    public Station getStation_lrt() {
+        return station_lrt;
+    }
+
+    public void setStation_lrt(Station station_lrt) {
+        this.station_lrt = station_lrt;
+    }
+
+    public Station getStation_bus() {
+        return station_bus;
+    }
+
+    public void setStation_bus(Station station_bus) {
+        this.station_bus = station_bus;
+    }
 
     public LatLng getPosition() {
         return position;
