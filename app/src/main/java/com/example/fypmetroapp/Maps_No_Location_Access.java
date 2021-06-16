@@ -1715,47 +1715,7 @@ public class Maps_No_Location_Access extends Fragment {
     //show the directions for a bus route
     @SuppressLint("NewApi")
     private void ShowFollowRoute(ArrayList<String> instructions) {
-        try {
-            gMap.setTrafficEnabled(false);
-            TableLayout mainTable_stations = getView().findViewById(R.id.mainTable_Route_follow);
-            mainTable_stations.removeAllViews();
-            TextView tv;
-            for (int y = 0; y < instructions.size(); y++) {
-                LayoutInflater inflater = Maps_No_Location_Access.this.getLayoutInflater();
-                TableRow mainRow = new TableRow(Maps_No_Location_Access.this.getContext());
-                String instruction = instructions.get(y);
 
-                if (instruction.contains("north"))
-                    inflater.inflate(R.layout.follow_north, mainRow);
-
-                else if (instruction.contains("southeast"))
-                    inflater.inflate(R.layout.follow_southeast, mainRow);
-
-                else if (instruction.contains("southwest"))
-                    inflater.inflate(R.layout.follow_southwest, mainRow);
-
-                else if (instruction.contains("Slight left"))
-                    inflater.inflate(R.layout.follow_slight_left, mainRow);
-
-                else if (instruction.contains("Slight right"))
-                    inflater.inflate(R.layout.follow_slight_right, mainRow);
-
-                else if (instruction.contains("right"))
-                    inflater.inflate(R.layout.route_instruction_right, mainRow);
-
-                else if (instruction.contains("left"))
-                    inflater.inflate(R.layout.follow_left, mainRow);
-
-                tv = new TextView(mainRow.getContext());
-                tv.setText(instruction);
-                tv.setTextSize(14.0f);
-                mainRow.addView(tv);
-                mainTable_stations.addView(mainRow);
-            }
-        }
-        catch (Exception e) {
-            Log.e("clapped", "error!");
-        }
     }
 
     public void removeLRTPoly() {

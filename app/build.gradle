@@ -52,6 +52,7 @@ android {
 }
 
 dependencies {
+    compile 'com.elmargomez.typer:typerlib:1.0.0'
     implementation 'com.github.mancj:MaterialSearchBar:0.8.5'
     implementation("com.tomtom.online:sdk-routing:2.4807")
     implementation 'com.google.maps.android:android-maps-utils:0.5+'

@@ -28,6 +28,9 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import android.Manifest;
@@ -177,7 +180,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     TextView textAddress;
     LinearLayout llNearbySheet;
     LinearLayout llBus_Stations_Route;
-    LinearLayout llFollow_Route;
+    static LinearLayout llFollow_Route;
     LinearLayout llBottomSheet;
     LinearLayout llLRT_StationSheet_Sche;
     LinearLayout llBUS_StationSheet_Sche;
@@ -219,6 +222,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     Marker userMarker;
     Marker driverMarker;
     private Dialog stationDetailsDialog;
+    static Dialog ride_stops_dialog;
     GlobalProperties properties = new GlobalProperties();
     FirebaseAuth firebaseAuth;
     public static String uid;
@@ -229,6 +233,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     private LocationManager locationManager;
     private String provider;
     ImageView occupancy_anim;
+    static ImageView follow_anim;
     SupportMapFragment supportMapFragment;
     private ClusterManager<MarkerClusterItem> clusterManager;
     MarkerClusterRenderer<MarkerClusterItem> clusterRenderer;
@@ -242,8 +247,8 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     EditText edtText;
     EditText inputText;
     ProgressDialog progressDialog;
-    FrameLayout computed_layout;
-    static TinyDB tinyDB;
+    static FrameLayout computed_layout;
+    public static TinyDB tinyDB;
     ArrayList<String> instructions = new ArrayList<>();
     ArrayList<String> alt_instructions = new ArrayList<>();
     ArrayList<String> Alt1_Summary = new ArrayList<>();
@@ -254,38 +259,33 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     double walking_origin_vals;
     double walking_dest_vals;
     double bus_int;
+    static RecyclerView recyclerView_lrt, recyclerView_alts, recyclerView_full;
+    public static Route previous;
 
     //Class Declarations
     Origin origin = new Origin();
     Destination destination = new Destination();
     UserUpdates userUpdates = new UserUpdates();
     SearchPlace searchPlace = new SearchPlace();
-    Direct_BUS_Route direct_bus_route = new Direct_BUS_Route();
-    Connect_BUS_Route connect_bus_route = new Connect_BUS_Route();
+    static Route direct_bus_route = new Route();
+    Route connect_bus_route = new Route();
     ALT_connect_BUS_route alt_connect_bus_route = new ALT_connect_BUS_route();
-    Direct_LRT_Route direct_lrt_route = new Direct_LRT_Route();
+    Route direct_lrt_route = new Route();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.maps_full_access, container, false);
+        View v = inflater.inflate(R.layout.maps_full_access, container, false);
+        return v;
     }
 
     @SuppressLint("MissingPermission")
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         preferences = this.getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-
         tinyDB = new TinyDB(getContext());
-        tinyDB.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                HomeFragment_User.update_previous();
-            }
-        });
-
         firebaseAuth = FirebaseAuth.getInstance();
         this.locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
@@ -324,6 +324,9 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         selectReverse = getView().findViewById(R.id.selectReverse);
         computed_layout = getView().findViewById(R.id.computed_routes_frag);
         close_routes = getView().findViewById(R.id.close_routes);
+        recyclerView_alts = getView().findViewById(R.id.alt_routes_recycler);
+        recyclerView_lrt = getView().findViewById(R.id.best_route_recycler);
+        recyclerView_full = getView().findViewById(R.id.route_recycler);
 
         AutocompleteSessionToken sessionToken = AutocompleteSessionToken.newInstance();
 
@@ -520,6 +523,15 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
             HomeFragment_User.update_favourites();
+        }
+    };
+
+    SharedPreferences.OnSharedPreferenceChangeListener listener_db = new SharedPreferences.OnSharedPreferenceChangeListener() {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            Log.e("prefs", "changed");
+            HomeFragment_User.update_intervals();
+            HomeFragment_User.update_previous();
         }
     };
 
@@ -1087,6 +1099,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     favourite_from();
                     break;
                 case R.id.startDirections:
+                    tinyDB.putDouble("direct", 5.5);
                     rlDirections.setVisibility(View.VISIBLE);
                     break;
                 case R.id.close_dir:
@@ -1168,7 +1181,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     String instruction = String.valueOf(Html.fromHtml(get, Html.FROM_HTML_MODE_COMPACT));
                     instructions.add(instruction);
                 }
-                ShowFollowRoute(instructions);
+                //ShowFollowRoute(instructions);
                 addWalkToBusPolyline(results, gMap);
                 positionCamera(results.routes[overview], gMap);
             }
@@ -2645,6 +2658,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     public void onResume() {
         super.onResume();
         preferences.registerOnSharedPreferenceChangeListener(listener);
+        tinyDB.registerOnSharedPreferenceChangeListener(listener_db);
     }
 
     @Override
@@ -3064,6 +3078,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         ArrayList<String> ins = new ArrayList<>(walking_Origin_instructions);
         ins.add("----------------- MY DIRECTIONS -----------------");
         ArrayList<String> ins_summary = new ArrayList<>(ins_summary_o);
+        ArrayList<String> riding = new ArrayList<>();
 
         boolean yes = false;
         int dest = getPosDest(destination);
@@ -3075,6 +3090,14 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     //Log.e("Get the [Towards Rose-Hill] LRV from ", origin.getName());
                     //Log.e("Ride for", ride + " stops");
                     //Log.e("Then get off at", station.getName());
+                    for (Station station1: allLRTStations_reversed) {
+                        int pos = getPosDest(station1);
+                        if (pos <= ride) {
+                            if (!station1.getName().equals(origin.getName())) {
+                                riding.add(station1.getName());
+                            }
+                        }
+                    }
                     ins.add("Get the [Towards Rose-Hill] LRV from " + origin.getName());
                     ins.add("Ride for " + ride + " stops");
                     ins.add("Then get off at " + station.getName());
@@ -3085,6 +3108,10 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     ins_summary.add(ins_sum);
                     ins.addAll(walking_Dest_instructions);
                     ins_summary.addAll(ins_summary_d);
+
+                    direct_lrt_route.setOrigin(origin);
+                    direct_lrt_route.setDestination(station);
+                    direct_lrt_route.setRidingList(riding);
                     direct_lrt_route.setInstructions(ins);
                     direct_lrt_route.setSummary(ins_summary);
                     direct_lrt_route.setTotal_route_duration(duration);
@@ -3098,7 +3125,14 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     //Log.e("Get the [Towards Port Louis] LRV from ", origin.getName());
                     //Log.e("Ride for", ride + " stops");
                     //Log.e("Then get off at", station.getName());
-
+                    for (Station station1: allLRTStations) {
+                        int pos = getPosDest(station1);
+                        if (pos <= ride) {
+                            if (!station1.getName().equals(origin.getName())) {
+                                riding.add(station1.getName());
+                            }
+                        }
+                    }
                     ins.add("Get the [Towards Port Louis] LRV from " + origin.getName());
                     ins.add("Ride for " + ride + " stops");
                     ins.add("Then get off at " + station.getName());
@@ -3109,6 +3143,10 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     String ins_sum = " -> LRT [PL] -> ";
                     ins_summary.add(ins_sum);
                     ins_summary.addAll(ins_summary_d);
+
+                    direct_lrt_route.setOrigin(origin);
+                    direct_lrt_route.setDestination(station);
+                    direct_lrt_route.setRidingList(riding);
                     direct_lrt_route.setInstructions(ins);
                     direct_lrt_route.setSummary(ins_summary);
                     direct_lrt_route.setTotal_route_duration(duration);
@@ -3239,162 +3277,102 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
             public void run() {
                 progressDialog.dismiss();
                 computed_layout.setVisibility(View.VISIBLE);
-                displayRoutes();
+
+                ArrayList<Route> alt_routes = new ArrayList<>();
+                alt_routes.add(direct_bus_route);
+                alt_routes.add(connect_bus_route);
+                setAdapter_Alts(alt_routes);
+
+                ArrayList<Route> best_routes = new ArrayList<>();
+                best_routes.add(direct_lrt_route);
+                setAdapter_Best(best_routes);
             }
         }, 5000);
     }
 
     //show the directions for a bus route
-    @SuppressLint("NewApi")
-    private void ShowFollowRoute(ArrayList<String> instructions) {
-        try {
-            TableLayout mainTable_follow = getView().findViewById(R.id.mainTable_Route_follow);
-            mainTable_follow.removeAllViews();
-            TextView tv;
-            for (int y = 0; y < instructions.size(); y++) {
-                LayoutInflater inflater = Maps_Full_Access.this.getLayoutInflater();
-                TableRow mainRow = new TableRow(Maps_Full_Access.this.getContext());
-                String instruction = instructions.get(y);
-                inflater.inflate(R.layout.route_to_inflate, mainRow);
-                tv = new TextView(inflater.getContext());
-                tv.setMaxWidth((getContext().getResources().getDisplayMetrics()).widthPixels);
-                tv.setTextSize(14.0f);
-                tv.setText(instruction);
-                mainRow.addView(tv);
-                mainTable_follow.addView(mainRow);
-            }
-        }
-        catch (Exception e) {
-            Log.e("clapped", "error!");
-        }
+    static void setRouteAdapter (Route route, Context context) {
+        computed_layout.setVisibility(View.INVISIBLE);
+        Route_RecyclerAdapter adapter = new Route_RecyclerAdapter(route.getInstructions(), route, context);
+        RecyclerView.LayoutManager manager = new LinearLayoutManager(context);
+        recyclerView_full.setLayoutManager(manager);
+        recyclerView_full.setItemAnimator(new DefaultItemAnimator());
+        recyclerView_full.setAdapter(adapter);
     }
 
-    private void displayRoutes() {
-        try {
-            display_as_best_lrt();
-            display_as_best_bus();
-            display_as_alt_bus();
-        }
-        catch (Exception e) {
-            Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
-        }
+    static void setPrevious (Route route) {
+        previous = route;
+        tinyDB.putListString("Prev", route.getSummary());
+        tinyDB.putListString("Prev_Full", route.getInstructions());
     }
 
-    private void display_as_alt_bus () {
-        String instruct = "";
-        TableLayout mainTable_best_route = getView().findViewById(R.id.alternate_route);
-        LayoutInflater inflater = Maps_Full_Access.this.getLayoutInflater();
-        TableRow mainRow = new TableRow(Maps_Full_Access.this.getContext());
-        mainTable_best_route.removeAllViews();
-        inflater.inflate(R.layout.routes_compd, mainRow);
-        TextView tv = new TextView(mainRow.getContext());
+    private void setAdapter_Alts (ArrayList<Route> routes) {
+        Computed_RecyclerAdapter adapter = new Computed_RecyclerAdapter(routes, this.getContext(), this.getView());
+        RecyclerView.LayoutManager manager = new LinearLayoutManager(getContext());
+        recyclerView_alts.setLayoutManager(manager);
+        recyclerView_alts.setItemAnimator(new DefaultItemAnimator());
+        recyclerView_alts.setAdapter(adapter);
+    }
 
-        //check for the shortest route
-        for (String ins: connect_bus_route.getSummary()) {
-            instruct += ins;
+    private void setAdapter_Best (ArrayList<Route> routes) {
+        Computed_RecyclerAdapter adapter = new Computed_RecyclerAdapter(routes, this.getContext(), this.getView());
+        RecyclerView.LayoutManager manager = new LinearLayoutManager(getContext());
+        recyclerView_lrt.setLayoutManager(manager);
+        recyclerView_lrt.setItemAnimator(new DefaultItemAnimator());
+        recyclerView_lrt.setAdapter(adapter);
+    }
+
+    static void show_ride_stops_buses (Context context, ArrayList<String> instructions, String main) {
+        ride_stops_dialog = new Dialog(context);
+        ride_stops_dialog.setContentView(R.layout.dialog_ride_stops);
+        ride_stops_dialog.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
+        ImageButton closeDialog = ride_stops_dialog.findViewById(R.id.dialog_closeX);
+        TableLayout buses = ride_stops_dialog.findViewById(R.id.riding_stops);
+        TextView ride_for = ride_stops_dialog.findViewById(R.id.ride_for);
+        ride_for.setText(main);
+        buses.removeAllViews();
+        follow_anim = ride_stops_dialog.findViewById(R.id.follow_anim);
+        animateView_follow(follow_anim, true, context);
+        for (String ins: instructions) {
+            TextView tv = new TextView(ride_stops_dialog.getContext());
+            tv.setText(ins);
+
+            LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            TableRow mainRow = new TableRow(context);
+
+            inflater.inflate(R.layout.inflate_ride_stop, mainRow);
+            mainRow.addView(tv);
+            //mainRow.addView(stopDistanceText);
+
+            //onclick listener for each row
+            mainRow.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Toast.makeText(context, "clicked" + ins, Toast.LENGTH_LONG).show();
+                }
+            });
+            buses.addView(mainRow);
         }
-        ArrayList<String> new_summary = new ArrayList<>();
-        instruct += " [" + connect_bus_route.getTotal_route_duration() + " mins]";
-        new_summary.add(instruct);
-        connect_bus_route.setSummary(new_summary);
-        mainRow.setOnClickListener(new View.OnClickListener() {
+        closeDialog.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PreviousJourneys previousJourneys = new PreviousJourneys();
-                previousJourneys.setPrevious_summary(connect_bus_route.getSummary());
-                previousJourneys.setPrevious_full(connect_bus_route.getInstructions());
-                tinyDB.putListString("Prev", connect_bus_route.getSummary());
-                tinyDB.putListString("Prev_Full", connect_bus_route.getInstructions());
-                computed_layout.setVisibility(View.INVISIBLE);
-                ShowFollowRoute(connect_bus_route.getInstructions());
+                animateView_follow(follow_anim, false, context);
+                ride_stops_dialog.dismiss();
             }
         });
-
-        tv.setText(instruct);
-        tv.setTextSize(14.0f);
-        //tv.setPadding(0, 50, 0, 10);
-        mainRow.addView(tv);
-        mainTable_best_route.addView(mainRow);
+        ride_stops_dialog.show();
     }
 
-    private void display_as_best_lrt () {
-        String instruct_ = "";
-        TableLayout mainTable_best_route_ = getView().findViewById(R.id.best_lrt_route);
-        LayoutInflater inflater_ = Maps_Full_Access.this.getLayoutInflater();
-        TableRow mainRow_ = new TableRow(Maps_Full_Access.this.getContext());
-        mainTable_best_route_.removeAllViews();
-        inflater_.inflate(R.layout.routes_compd, mainRow_);
-        TextView tv_ = new TextView(mainRow_.getContext());
+    @SuppressLint("NewApi")
+    static void animateView_follow (ImageView imageView, boolean animate, Context context) {
+        AnimatedVectorDrawable d = (AnimatedVectorDrawable) context.getResources().getDrawable(R.drawable.follow_route);
+        // Insert your AnimatedVectorDrawable resource identifier
+        follow_anim.setImageDrawable(d);
 
-        if (direct_lrt_route.getInstructions() != null) {
-            //check for the shortest route
-            for (String ins: direct_lrt_route.getSummary()) {
-                instruct_ += ins;
-            }
-            ArrayList<String> new_summary = new ArrayList<>();
-            instruct_ += " [" + direct_lrt_route.getTotal_route_duration() + " mins]";
-            new_summary.add(instruct_);
-            direct_lrt_route.setSummary(new_summary);
-            mainRow_.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    PreviousJourneys previousJourneys = new PreviousJourneys();
-                    previousJourneys.setPrevious_summary(direct_lrt_route.getSummary());
-                    previousJourneys.setPrevious_full(direct_lrt_route.getInstructions());
-                    tinyDB.putListString("Prev", direct_lrt_route.getSummary());
-                    tinyDB.putListString("Prev_Full", direct_lrt_route.getInstructions());
-                    computed_layout.setVisibility(View.INVISIBLE);
-                    ShowFollowRoute(direct_lrt_route.getInstructions());
-                }
-            });
+        if (animate) {
+            d.start();
         }
-
-        tv_.setText(instruct_);
-        tv_.setTextSize(14.0f);
-        //tv_.setPadding(0, 50, 0, 10);
-        mainRow_.addView(tv_);
-        mainTable_best_route_.addView(mainRow_);
-    }
-
-    private void display_as_best_bus () {
-        String instruct_ = "";
-        TableLayout mainTable_best_route_ = getView().findViewById(R.id.best_bus_route);
-        LayoutInflater inflater_ = Maps_Full_Access.this.getLayoutInflater();
-        TableRow mainRow_ = new TableRow(Maps_Full_Access.this.getContext());
-        mainTable_best_route_.removeAllViews();
-        inflater_.inflate(R.layout.routes_compd, mainRow_);
-        TextView tv_ = new TextView(mainRow_.getContext());
-
-        if (direct_bus_route.getInstructions() != null) {
-            //check for the shortest route
-            for (String ins: direct_bus_route.getSummary()) {
-                instruct_ += ins;
-            }
-            ArrayList<String> new_summary = new ArrayList<>();
-            instruct_ += " [" + direct_bus_route.getTotal_route_duration() + " mins]";
-            new_summary.add(instruct_);
-            direct_bus_route.setSummary(new_summary);
-            mainRow_.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    PreviousJourneys previousJourneys = new PreviousJourneys();
-                    previousJourneys.setPrevious_summary(direct_bus_route.getSummary());
-                    previousJourneys.setPrevious_full(direct_bus_route.getInstructions());
-                    tinyDB.putListString("Prev", direct_bus_route.getSummary());
-                    tinyDB.putListString("Prev_Full", direct_bus_route.getInstructions());
-                    computed_layout.setVisibility(View.INVISIBLE);
-                    ShowFollowRoute(direct_bus_route.getInstructions());
-                }
-            });
-        }
-        else {
-            mainTable_best_route_.setVisibility(View.GONE);
-        }
-
-        tv_.setText(instruct_);
-        tv_.setTextSize(14.0f);
-        //tv_.setPadding(0, 50, 0, 10);
-        mainRow_.addView(tv_);
-        mainTable_best_route_.addView(mainRow_);
+        else
+            d.stop();
     }
 }

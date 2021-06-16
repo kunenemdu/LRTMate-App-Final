@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_marginVertical="2sp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/summary_border"
+    android:orientation="horizontal">
+
+    <View
+        android:layout_width="10dp"
+        android:layout_height="match_parent"
+        android:layout_marginRight="10dp"
+        android:background="@color/normal_green"
+        android:layout_marginEnd="5dp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2 hours"
+            style="@style/route_step"
+            android:id="@+id/route_step_text"
+            android:layout_marginEnd="5dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>

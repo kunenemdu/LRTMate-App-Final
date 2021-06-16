@@ -850,5 +850,14 @@ public class HomeFragment_User extends Fragment implements LocationListener {
                 }
             }
         });
+
+        ref.addSnapshotListener(new EventListener<DocumentSnapshot>() {
+            @Override
+            public void onEvent(@Nullable DocumentSnapshot value, @Nullable FirebaseFirestoreException error) {
+                if (value != null && !value.exists()) {
+                    update_intervals();
+                }
+            }
+        });
     }
 }

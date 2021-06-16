@@ -48,14 +48,10 @@
                     android:layout_height="2dp"
                     android:background="@color/quantum_grey500" />
 
-                <TableLayout
+                <androidx.recyclerview.widget.RecyclerView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="15dp"
-                    android:id="@+id/mainTable_Route_follow">
-
-
-                </TableLayout>
+                    android:id="@+id/route_recycler"/>
 
             </LinearLayout>
 
