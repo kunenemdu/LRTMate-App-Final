@@ -12,6 +12,7 @@ public class St_John extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.2164001, 57.4694824);
         station.buses = getBuses();
+        station.occupancy = 12;
         return station;
     }
 

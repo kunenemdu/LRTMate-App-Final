@@ -8,218 +8,192 @@
     android:layout_height="match_parent"
     tools:context=".Maps_Full_Access">
 
-    <FrameLayout
+    <ViewFlipper
         android:layout_width="match_parent"
+        android:id="@+id/maps_full_access_flipper"
         android:layout_height="match_parent">
 
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:id="@+id/mapcontainer"
             android:layout_height="match_parent">
 
-            <!--    map container-->
-            <fragment
-                android:id="@+id/mainMapFrags"
-                android:name="com.google.android.gms.maps.SupportMapFragment"
+            <androidx.coordinatorlayout.widget.CoordinatorLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:id="@+id/mapcontainer"
+                android:layout_height="match_parent">
 
-            <!--    nearby stops sheet-->
+                <!--    map container-->
+                <fragment
+                    android:id="@+id/mainMapFrags"
+                    android:name="com.google.android.gms.maps.SupportMapFragment"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <!--    nearby stops sheet-->
 
                 <!--    nearby stops container-->
                 <include layout="@layout/nearby_stations_buses" />
 
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+            </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-        <com.mancj.materialsearchbar.MaterialSearchBar
-            style="@style/MaterialSearchBarLight"
-            app:mt_speechMode="true"
-            app:mt_hint="Where to today?"
-            app:mt_maxSuggestionsCount="2"
-            android:layout_margin="10dp"
-            android:visibility="invisible"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/searchBar" />
-
-        <!--    place details sheet-->
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <com.mancj.materialsearchbar.MaterialSearchBar
+                style="@style/MaterialSearchBarLight"
+                app:mt_speechMode="true"
+                app:mt_hint="Where to today?"
+                app:mt_maxSuggestionsCount="2"
+                android:layout_margin="10dp"
+                android:visibility="invisible"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="right"
-                android:background="@color/transparent"
-                android:orientation="vertical">
+                android:id="@+id/searchBar" />
 
-                <androidx.cardview.widget.CardView
-                    android:layout_width="wrap_content"
-                    android:layout_margin="@dimen/spacing_medium"
-                    app:cardCornerRadius="@dimen/standard_buttons_size"
-                    android:layout_height="wrap_content">
-
-                    <ImageButton
-                        android:id="@+id/searchIcon"
-                        android:layout_width="@dimen/standard_buttons_size"
-                        android:layout_height="@dimen/standard_buttons_size"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/search_24"
-                        android:tint="@color/main_blue" />
-
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="wrap_content"
-                    android:layout_marginHorizontal="@dimen/spacing_medium"
-                    app:cardCornerRadius="@dimen/standard_buttons_size"
-                    android:layout_height="wrap_content">
-
-                    <ImageButton
-                        android:id="@+id/imMyLocation"
-                        android:layout_width="?actionBarSize"
-                        android:layout_height="?attr/actionBarSize"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:padding="0dp"
-                        android:paddingBottom="18dp"
-                        android:src="@drawable/ic_top_track_location"
-                        android:tint="@color/main_blue" />
-
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="wrap_content"
-                    android:layout_margin="@dimen/spacing_medium"
-                    app:cardCornerRadius="@dimen/standard_buttons_size"
-                    android:layout_height="wrap_content">
-
-                    <ImageButton
-                        android:id="@+id/startDirections"
-                        android:layout_width="@dimen/standard_buttons_size"
-                        android:layout_height="@dimen/standard_buttons_size"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:padding="0dp"
-                        android:paddingBottom="18dp"
-                        android:src="@drawable/ic_route_icon_white"
-                        android:tint="@color/main_blue" />
-
-                </androidx.cardview.widget.CardView>
-
-
-
-            </LinearLayout>
-
-
-
-
-
-            <!--    sheet container-->
-            <include layout="@layout/sheet_map" />
-
-
-            <!--            bottom sheet icon-->
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fab_directions"
-                android:layout_width="wrap_content"
-                android:background="@color/main_blue"
-                android:layout_height="wrap_content"
-                android:layout_margin="1dp"
-                android:clickable="true"
-                android:tint="@color/white"
-                app:fabSize="mini"
-                app:layout_anchor="@id/bottom_sheet"
-                app:layout_anchorGravity="top|end"
-                app:rippleColor="@android:color/white"
-                app:srcCompat="@drawable/ic_location" />
-
-
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <include layout="@layout/clicked_station_sheet"/>
-
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <include layout="@layout/follow_route"/>
-
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/nearbystations"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:layout_anchor="@+id/route_stations"
-                android:layout_marginBottom="70dp"
-                app:cardCornerRadius="35dp"
-                app:layout_anchorGravity="top|center">
+            <!--    place details sheet-->
+            <androidx.coordinatorlayout.widget.CoordinatorLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="15dp"
-                    android:layout_marginEnd="15dp"
-                    android:orientation="horizontal">
+                    android:layout_gravity="right"
+                    android:background="@color/transparent"
+                    android:orientation="vertical">
 
-                    <ImageButton
-                        android:layout_width="match_parent"
-                        android:layout_height="?actionBarSize"
-                        android:background="@color/transparent"
-                        android:src="@drawable/ic_arrow_up"
-                        android:tint="@color/main_blue" />
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="wrap_content"
+                        android:layout_margin="@dimen/spacing_medium"
+                        app:cardCornerRadius="@dimen/standard_buttons_size"
+                        android:layout_height="wrap_content">
+
+                        <ImageButton
+                            android:id="@+id/searchIcon"
+                            android:layout_width="@dimen/standard_buttons_size"
+                            android:layout_height="@dimen/standard_buttons_size"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/search_24"
+                            android:tint="@color/main_blue" />
+
+                    </androidx.cardview.widget.CardView>
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="wrap_content"
+                        android:layout_marginHorizontal="@dimen/spacing_medium"
+                        app:cardCornerRadius="@dimen/standard_buttons_size"
+                        android:layout_height="wrap_content">
+
+                        <ImageButton
+                            android:id="@+id/imMyLocation"
+                            android:layout_width="?actionBarSize"
+                            android:layout_height="?attr/actionBarSize"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="0dp"
+                            android:paddingBottom="18dp"
+                            android:src="@drawable/ic_top_track_location"
+                            android:tint="@color/main_blue" />
+
+                    </androidx.cardview.widget.CardView>
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="wrap_content"
+                        android:layout_margin="@dimen/spacing_medium"
+                        app:cardCornerRadius="@dimen/standard_buttons_size"
+                        android:layout_height="wrap_content">
+
+                        <ImageButton
+                            android:id="@+id/startDirections"
+                            android:layout_width="@dimen/standard_buttons_size"
+                            android:layout_height="@dimen/standard_buttons_size"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="0dp"
+                            android:paddingBottom="18dp"
+                            android:src="@drawable/ic_route_icon_white"
+                            android:tint="@color/main_blue" />
+
+                    </androidx.cardview.widget.CardView>
+
+
+
+                </LinearLayout>
+
+                <!--    sheet container-->
+                <include layout="@layout/sheet_map" />
+
+
+                <!--            bottom sheet icon-->
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fab_directions_maps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="1dp"
+                    android:clickable="true"
+                    app:layout_anchor="@id/bottom_sheet"
+                    app:layout_anchorGravity="top|end"
+                    android:tint="@color/white"
+                    android:backgroundTint="@color/main_blue"
+                    app:rippleColor="@android:color/white"
+                    app:srcCompat="@drawable/ic_directions_walk_24" />
+
+
+            </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+            <androidx.coordinatorlayout.widget.CoordinatorLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <include layout="@layout/clicked_station_sheet"/>
+
+            </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+            <androidx.coordinatorlayout.widget.CoordinatorLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/nearbystations"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_anchor="@+id/route_stations"
+                    android:layout_marginBottom="70dp"
+                    app:cardCornerRadius="35dp"
+                    app:layout_anchorGravity="top|center">
 
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="?actionBarSize"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="15dp"
+                        android:layout_marginEnd="15dp"
                         android:orientation="horizontal">
 
-                        <TextView
+                        <ImageButton
+                            android:layout_width="match_parent"
+                            android:layout_height="?actionBarSize"
+                            android:background="@color/transparent"
+                            android:src="@drawable/ic_arrow_up"
+                            android:tint="@color/main_blue" />
+
+                        <LinearLayout
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:text="Nearby Stations"
-                            android:textColor="@color/black" />
+                            android:layout_height="?actionBarSize"
+                            android:orientation="horizontal">
 
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="Nearby Stations"
+                                android:textColor="@color/black" />
+
+                        </LinearLayout>
                     </LinearLayout>
-                </LinearLayout>
 
-            </androidx.cardview.widget.CardView>
+                </androidx.cardview.widget.CardView>
 
-            <include layout="@layout/route_stations"/>
+                <include layout="@layout/route_stations"/>
 
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+            </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+        </FrameLayout>
 
-            <include
-                android:visibility="invisible"
-                layout="@layout/activity_directions"/>
-
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <include
-                android:visibility="invisible"
-                layout="@layout/fragment_computed_routes"/>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-    </FrameLayout>
+    </ViewFlipper>
 
 </androidx.drawerlayout.widget.DrawerLayout>

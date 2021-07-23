@@ -12,6 +12,7 @@ public class Moka extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.226135, 57.506561);
         station.buses = getBuses();
+        station.occupancy = 5;
         return station;
     }
 

@@ -2,8 +2,6 @@ package com.example.fypmetroapp;
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
-import com.firebase.geofire.GeoQuery;
-import com.firebase.geofire.GeoQueryDataEventListener;
 import com.google.android.flexbox.FlexboxLayout;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationCallback;
@@ -11,7 +9,6 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.Dash;
 import com.google.android.gms.maps.model.Dot;
 import com.google.android.gms.maps.model.Gap;
@@ -63,7 +60,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -100,15 +96,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.maps.DirectionsApi;
 import com.google.maps.GeoApiContext;
 import com.google.maps.android.PolyUtil;
@@ -177,7 +166,7 @@ public class Maps_No_Location_Access extends Fragment {
     LinearLayout llBottomSheet;
     LinearLayout llLRT_StationSheet_Sche;
     LinearLayout llBUS_StationSheet_Sche;
-    CardView rlDirections;
+    LinearLayout rlDirections;
     private Polyline polyline_LRT;
     private Polyline polyline_BUS;
     private Polyline polyline_Directions;
@@ -204,7 +193,7 @@ public class Maps_No_Location_Access extends Fragment {
     ImageButton directionsButton, fav_to, fav_from;
     public static final int overview = 0;
     CardView nearbyCardView;
-    CardView drivingMode;
+    CardView lrtMode;
     ArrayList<Bus> allBuses;
     int distance = 0;
     GeoFire userGeoFire;
@@ -281,7 +270,7 @@ public class Maps_No_Location_Access extends Fragment {
         directionsButton = getView().findViewById(R.id.startDirections);
         fav_from = getView().findViewById(R.id.fav_from);
         fav_to = getView().findViewById(R.id.fav_to);
-        drivingMode = getView().findViewById(R.id.drivingMode);
+        lrtMode = getView().findViewById(R.id.lrtMode);
         stationDetailsDialog = new Dialog(getContext());
         onlineRoutingApi = OnlineRoutingApi.create(getContext(), Constants.APIKEY);
         rlDirections = getView().findViewById(R.id.directions_frag);
@@ -420,7 +409,7 @@ public class Maps_No_Location_Access extends Fragment {
         fav_from.setOnClickListener(Buttons);
         fav_to.setOnClickListener(Buttons);
         nearbyCardView.setOnClickListener(Buttons);
-        drivingMode.setOnClickListener(Buttons);
+        lrtMode.setOnClickListener(Buttons);
 
         ((FloatingActionButton) getView().findViewById(R.id.fab_directions)).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1045,7 +1034,7 @@ public class Maps_No_Location_Access extends Fragment {
                     ShowNearestStations();
                     hideAllSheets();
                     break;
-                case R.id.drivingMode:
+                case R.id.lrtMode:
                     doDrivingInstructions();
                     break;
             }
@@ -1420,11 +1409,6 @@ public class Maps_No_Location_Access extends Fragment {
     @SuppressLint("NewApi")
     private void ShowNearestStations() {
         allBuses = addBuses();
-        TableLayout mainTable_stations = getView().findViewById(R.id.mainTable_stations);
-        TableLayout mainTable_buses = getView().findViewById(R.id.mainTable_buses);
-
-        if (mainTable_stations != null) mainTable_stations.removeAllViews();
-        if (mainTable_buses != null) mainTable_buses.removeAllViews();
 
         //nearest stations
         ArrayList<Station> nearbyStations = new ArrayList<>();
@@ -1491,14 +1475,12 @@ public class Maps_No_Location_Access extends Fragment {
                 stopDistanceText.setTextColor(green);
 
                 stopText.setText(station.name);
-                stopText.setTextAppearance(R.style.station_text);
                 stopText.setPadding(0, 40, 0, 0);
 
                 mainRow.addView(stopText);
                 mainRow.addView(stopDistanceText);
                 //onclick listener for each row
                 mainRow.setOnClickListener(v -> ClickedNearbyStation(station.name));
-                if (mainTable_stations != null) mainTable_stations.addView(mainRow);
             }
             else if (station.type.equals(Config.STATION_TYPE_BUS)) {
                 inflater.inflate(R.layout.bus_row_to_inflate, mainRow);
@@ -1513,7 +1495,6 @@ public class Maps_No_Location_Access extends Fragment {
                 stopDistanceText.setTextColor(green);
 
                 stopText.setText(station.name);
-                stopText.setTextAppearance(R.style.station_text);
                 stopText.setPadding(0, 40, 0, 0);
 
                 //TODO: ADD BUS STATIONS # ON EACH ROW
@@ -1536,7 +1517,6 @@ public class Maps_No_Location_Access extends Fragment {
 
                 //onclick listener for each row
                 mainRow.setOnClickListener(v -> ClickedNearbyStation(station.name));
-                if (mainTable_buses != null) mainTable_buses.addView(mainRow);
             }
         }
     }
@@ -1694,7 +1674,6 @@ public class Maps_No_Location_Access extends Fragment {
                 //stopDistanceText.setText("~" + station_bus.distance + "m away");
 
                 stopText.setText(station.name);
-                stopText.setTextAppearance(R.style.station_text);
                 stopText.setPadding(5, 40, 0, 0);
 
                 mainRow.addView(stopText);
@@ -1942,7 +1921,7 @@ public class Maps_No_Location_Access extends Fragment {
                                 removeBUSPoly();
                             bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
                             ShowRouteStations(thisBus);
-                            new Bus().busRoute(thisBus);
+                            new Bus().busRoute(thisBus, gMap, route);
                             stationDetailsDialog.dismiss();
                             bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
                         }

@@ -120,10 +120,10 @@ public class NoAccess extends AppCompatActivity {
                     return true;
                 /*case R.id.settings:
                     fm.beginTransaction()
-                            .hide(active)
+                            .hide(active_map)
                             .show(userprefs)
                             .commit();
-                    active = userprefs;
+                    active_map = userprefs;
                     dl.closeDrawers();
                     return true;*/
                 case R.id.logout:

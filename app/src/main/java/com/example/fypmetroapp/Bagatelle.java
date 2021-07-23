@@ -12,6 +12,7 @@ public class Bagatelle extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.2241773, 57.4938127);
         station.buses = getBuses();
+        station.occupancy = 22;
         return station;
     }
 

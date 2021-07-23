@@ -12,6 +12,7 @@ public class Kennedy extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.2417338, 57.475571);
         station.buses = getBuses();
+        station.occupancy = 42;
         return station;
     }
 

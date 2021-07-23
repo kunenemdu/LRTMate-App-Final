@@ -1,9 +1,14 @@
 package com.example.fypmetroapp;
 
+import android.annotation.SuppressLint;
+import android.app.Notification;
 import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
@@ -14,6 +19,7 @@ import androidx.core.app.NotificationManagerCompat;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofenceStatusCodes;
 import com.google.android.gms.location.GeofencingEvent;
+import com.google.android.gms.location.LocationServices;
 
 import java.util.List;
 
@@ -46,7 +52,7 @@ public class GeofenceBroadcastReceiver extends BroadcastReceiver {
             String locId = triggeringGeofences.get(0).getRequestId();
             sendNotification(locId, context);
 
-            Intent serviceIntent = new Intent(context, LocationService.class);
+            Intent serviceIntent = new Intent(context, LocationServices.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(serviceIntent);
             }else{
@@ -58,19 +64,33 @@ public class GeofenceBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
+    @SuppressLint("NewApi")
     private void sendNotification(String locId, Context context) {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, App.CHANNEL_ID)
-                .setSmallIcon(R.drawable.track_location)
-                .setContentTitle("Location Reached")
-                .setContentText(" you reached " + locId)
-                .setContent(null)
-                .setSound(DEFAULT_NOTIFICATION_URI)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                // Set the intent that will fire when the user taps the notification
-                .setAutoCancel(true);
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-        // notificationId is a unique int for each notification that you must define
-        notificationManager.notify(1, builder.build());
+        String NOTIFICATION_CHANNEL_ID = App.NOTIFICATION_SERVICE;
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            NotificationChannel channel = new NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    "Notifs",
+                    NotificationManager.IMPORTANCE_HIGH);
+
+            channel.setDescription("Desccription");
+            channel.setLightColor(Color.BLUE);
+            channel.enableLights(true);
+            channel.setVibrationPattern(new long[] {0, 1000, 500, 1000});
+            channel.enableVibration(true);
+            manager.createNotificationChannel(channel);
+        }
+
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                        .setSmallIcon(R.drawable.track_location)
+                        .setContentTitle("Station Reached.")
+                        .setContentText("You Made It To " + locId + "\nClick To Resume Your Journey.")
+                        .setDefaults(Notification.DEFAULT_ALL)
+                        .setPriority(Notification.PRIORITY_HIGH);
+        Notification notification = mBuilder.build();
+        manager.notify(0, notification);
     }
 }

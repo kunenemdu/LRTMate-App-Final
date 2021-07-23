@@ -29,14 +29,12 @@ public class DirectionsActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        gMap = new Maps_No_Location_Access().gMap;
+        gMap = MapsFragmentExtras.gMap;
 
         if (gMap != null) {
             bottomSheetBehavior_NearBy = new Maps_No_Location_Access().bottomSheetBehavior_NearBy;
             titleText = new Maps_No_Location_Access().titleText;
             textAddress = new Maps_No_Location_Access().textAddress;
-
-
         }
 
         Log.e("used ", "directions");

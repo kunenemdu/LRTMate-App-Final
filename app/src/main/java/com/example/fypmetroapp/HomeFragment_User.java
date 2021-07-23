@@ -1,141 +1,88 @@
 package com.example.fypmetroapp;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Address;
-import android.location.Criteria;
 import android.location.Geocoder;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
-import android.text.format.Time;
-import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.TableLayout;
-import android.widget.TableRow;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-import com.firebase.geofire.GeoFire;
-import com.google.android.flexbox.FlexboxLayout;
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.karumi.dexter.Dexter;
-import com.karumi.dexter.PermissionToken;
-import com.karumi.dexter.listener.PermissionDeniedResponse;
-import com.karumi.dexter.listener.PermissionGrantedResponse;
-import com.karumi.dexter.listener.PermissionRequest;
-import com.karumi.dexter.listener.single.PermissionListener;
-import com.robinhood.ticker.TickerUtils;
-import com.robinhood.ticker.TickerView;
+import com.tomergoldst.tooltips.ToolTip;
+import com.tomergoldst.tooltips.ToolTipsManager;
 
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import static android.graphics.Color.TRANSPARENT;
 
-public class HomeFragment_User extends Fragment implements LocationListener {
-
+public class HomeFragment_User extends Fragment implements ToolTipsManager.TipListener {
+    int times_seen = 0;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private static final String TAG = HomeFragment_User.class.getSimpleName();
-    //TextView locText;
-    Location mLocation;
-    Maps_No_Location_Access mapsFullAccess = new Maps_No_Location_Access();
-    LatLng currentLatLngLocation;
-    GoogleMap gMap;
-    GlobalProperties properties = new GlobalProperties();
-    DatabaseReference userRef, stationRef;
-    GeoFire userGeoFire, stationGeoFire;
-    static TextView status, proximity, occupancy, statType, init;
     String user_id;
-    static Button begin, stop;
-    static TickerView next_arrivalTicker, cur_stationTicker, progress_ticker;
     UserUpdates userUpdates;
     public static Dialog stationLegendReminder;
-    static SharedPreferences preferences;
     String role;
-    ProgressBar loaderBar;
-    LinearLayout loader, main;
-    private int progressStatus = 0;
-    private Handler progress_handler = new Handler();
-    private LocationManager locationManager;
-    private String provider;
-    Dialog buses_at_station;
-    TextView txtBusName;
-    boolean selected_bus = false;
-    final Handler timeHandler = new Handler(Looper.getMainLooper());
-    static LinearLayout favs;
-    static LinearLayout previous;
+    static LinearLayout favs, ll_previous, ll_home_sheet, ll_no_previous;
+    BottomSheetBehavior<LinearLayout> bottomSheetBehavior_Home_Sheet;
+    static RecyclerView previous_trips;
+    static ArrayList<Route> routes = new ArrayList<>();
+    static ArrayList<Object> routes_objects = new ArrayList<>();
+    static Fragment fragment = new HomeFragment_User();
+    Dialog dialog;
+    static ToolTipsManager manager;
+    static RelativeLayout main_container;
+    private TinyDB tinyDB = NavigationActivity.tinyDB;
 
+    @Nullable
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
-        role = preferences.getString("role", null);
-        View root = null;
-        Log.e("role", role);
-        if (role.equals("Driver")) {
-            root = inflater.inflate(R.layout.fragment_home_driver, container, false);
-        }
-        else if (role.equals("User")) {
-            root = inflater.inflate(R.layout.fragment_home, container, false);
-        }
-        return root;
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        View v = inflater.inflate(R.layout.fragment_home, container, false);
+        return v;
     }
 
     @SuppressLint("MissingPermission")
@@ -144,18 +91,6 @@ public class HomeFragment_User extends Fragment implements LocationListener {
         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
         user_id = firebaseAuth.getCurrentUser().getUid();
         userUpdates = new UserUpdates();
-        this.locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        provider = locationManager.getBestProvider(criteria, false);
-        preferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-        preferences.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                Log.e("changed", "prefssss");
-                update_favourites();
-            }
-        });
-
         super.onCreate(savedInstanceState);
     }
 
@@ -164,148 +99,35 @@ public class HomeFragment_User extends Fragment implements LocationListener {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         // initiate progress bar and start button
-        loaderBar = (ProgressBar) getView().findViewById(R.id.loadBar);
-        loaderBar.setMax(100); //15000ms is 15s
-        loader = getView().findViewById(R.id.loaderLL);
-        main = getView().findViewById(R.id.content_home);
-        progress_ticker = getView().findViewById(R.id.progress_ticker);
-        progress_ticker.setCharacterLists(TickerUtils.provideNumberList());
-        buses_at_station = new Dialog(getActivity());
+
         favs = getView().findViewById(R.id.favs);
-        previous = getView().findViewById(R.id.prevs);
-
-        //on load pan camera to user's location
-        LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
-        Criteria mCriteria = new Criteria();
-        String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
-        occupancy = getView().findViewById(R.id.occupancy);
-        statType = getView().findViewById(R.id.stationType);
-        status = getView().findViewById(R.id.currentStatus);
-        proximity = getView().findViewById(R.id.proximity);
-        begin = getView().findViewById(R.id.begin_btn);
-        stop = getView().findViewById(R.id.stop_btn);
-        init = getView().findViewById(R.id.init);
-
-        cur_stationTicker = getView().findViewById(R.id.curStation);
-        cur_stationTicker.setCharacterLists(TickerUtils.provideAlphabeticalList());
-        next_arrivalTicker = getView().findViewById(R.id.nextArrival);
-        next_arrivalTicker.setCharacterLists(TickerUtils.provideNumberList());
-
-        proximity.setText("Waiting to");
-        cur_stationTicker.setText("Receive Updates...");
-        status.setText("Waiting to Receive Updates...");
-        occupancy.setText("Waiting to Receive Updates...");
-        statType.setText("Waiting to");
-        next_arrivalTicker.setText("Receive Updates...");
-
-        status.setTextColor(Color.BLACK);
-        occupancy.setTextColor(Color.BLACK);
-        proximity.setTextColor(Color.BLACK);
-        cur_stationTicker.setTextColor(Color.BLUE);
-
-        begin.setOnClickListener(track_buttons);
-        stop.setOnClickListener(track_buttons);
-
+        ll_previous = getView().findViewById(R.id.prevs);
+        ll_no_previous = getView().findViewById(R.id.linear_no_previous);
+        previous_trips = getView().findViewById(R.id.previous_trips);
         //Log.e("prefs are", preferences.getAll().toString());
         stationLegendReminder = new Dialog(getActivity());
-
+        main_container = getView().findViewById(R.id.main_container_element);
+        initService_Updates();
         Handler legend = new Handler();
         legend.postDelayed(new Runnable() {
             @Override
             public void run() {
-                boolean legend_seen = preferences.getBoolean("legend_seen", false);
-                role = preferences.getString("role", null);
+                manager = new ToolTipsManager(HomeFragment_User.this);
+                boolean legend_seen = NavigationActivity.tinyDB.getBoolean("legend_seen");
+                role = NavigationActivity.tinyDB.getString("role");
+                update_favourites();
+                update_previous();
+                times_seen = NavigationActivity.tinyDB.getInt("times_seen");
+                showToolTipsHome();
                 if (!role.equals("Driver")) {
                     if (legend_seen == false)
                         showStationsLegend(true);
                     else
                         showStationsLegend(false);
                 }
+
             }
         }, 5000);
-
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                new Thread(new Runnable() {
-                    public void run() {
-                        while (progressStatus < 100) {
-                            progressStatus += 5;
-                            // Update the progress bar and display the
-                            //current value in the text view
-                            progress_handler.post(new Runnable() {
-                                public void run() {
-                                    loaderBar.setProgress(progressStatus);
-                                    progress_ticker.setText(progressStatus + "/"+ loaderBar.getMax());
-                                    if (progressStatus > 40)
-                                        init.setText("Setting Variables...");
-                                    if (progressStatus == 75)
-                                        init.setText("Finishing...");
-                                }
-                            });
-                            try {
-                                // Sleep for 200 milliseconds.
-                                Thread.sleep(200);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        loaderBar.setVisibility(View.INVISIBLE);
-                        loaderBar.clearAnimation();
-                        loader.setVisibility(View.INVISIBLE);
-                    }
-                }).start();
-
-                Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        main.setVisibility(View.VISIBLE);
-                        try {
-                            mLocation = manager.getLastKnownLocation(provider);
-                            if (mLocation != null) {
-
-                                //LatLng userLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-                                //String userLocation = getAddress(getContext(), mLocation.getLatitude(), mLocation.getLongitude());
-                                //locText.setText(userLocation);
-                            }
-
-                            SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-                            String role = pref.getString("role", null);
-
-                            Dexter.withActivity(getActivity())
-                                    .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                                    .withListener(new PermissionListener() {
-                                        @Override
-                                        public void onPermissionGranted(PermissionGrantedResponse response) {
-                                            if (role.equals("User")) {
-
-                                            }
-                                            SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
-                                                    .findFragmentById(R.id.home_map_frags);
-                                            mapFragment.getMapAsync(HomeFragment_User.this::onMapReady);
-                                            GeoFireConfig();
-                                            GeoFireConfigStations();
-                                        }
-
-                                        @Override
-                                        public void onPermissionDenied(PermissionDeniedResponse response) {
-                                            Toast.makeText(getContext(), "You have to enable Location Access!", Toast.LENGTH_SHORT).show();
-                                        }
-
-                                        @Override
-                                        public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-
-                                        }
-                                    }).check();
-                        } catch (Exception e) {
-                            Log.e("exc", e.getMessage());
-                        }
-                    }
-                }, 10000);
-            }
-        });
-        update_favourites();
     }
 
     @SuppressLint("NewApi")
@@ -319,231 +141,9 @@ public class HomeFragment_User extends Fragment implements LocationListener {
         }
 
         closeDialog.setOnClickListener(v -> {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean("legend_seen", true);
-            editor.apply();
+            NavigationActivity.tinyDB.putBoolean("legend_seen", true);
             stationLegendReminder.dismiss();
         });
-    }
-
-    View.OnClickListener track_buttons = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            switch (v.getId()) {
-                case R.id.begin_btn:
-                    userUpdates.setTracking(true);
-                    initTracking();
-                    break;
-                case R.id.stop_btn:
-                    userUpdates.setTracking(false);
-                    stopTracking();
-                    break;
-            }
-        }
-    };
-
-    private void stopTracking () {
-        begin.setVisibility(View.VISIBLE);
-        stop.setVisibility(View.INVISIBLE);
-        if (userUpdates.tracking == false) {
-            proximity.setText("Waiting to");
-            cur_stationTicker.setText("Receive Updates...");
-            status.setText("Waiting to Receive Updates...");
-            occupancy.setText("Waiting to Receive Updates...");
-            status.setTextColor(Color.BLACK);
-            occupancy.setTextColor(Color.BLACK);
-            proximity.setTextColor(Color.BLACK);
-            cur_stationTicker.setTextColor(Color.BLACK);
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    public void initTracking() {
-        begin.setVisibility(View.INVISIBLE);
-        stop.setVisibility(View.VISIBLE);
-        //Log.e("loc", userUpdates.nearest_station.name);
-        ShowBusesDialog(userUpdates.getNearest_station());
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                handler.postDelayed(this, 2000);
-                //time = d/s [avg walking speed humans = 6kph]
-                //TODO: CALCULATE THIS USING USER'S AVG SPEED IF ON FOOT/DRIVING/CYCLING
-                int time = userUpdates.distance_to_nearest_station / 6;
-                proximity.setText("~ " + time + " min(s) from");
-                proximity.setTextColor(getResources().getColor(R.color.normal_green));
-                cur_stationTicker.setText(userUpdates.nearest_station.name);
-                cur_stationTicker.setTextColor(Color.BLUE);
-
-                if (userUpdates.cur_stat_occupancy >= 3.0) {
-                    occupancy.setText("Very Active");
-                    occupancy.setTextColor(getResources().getColor(R.color.quantum_googred));
-                }
-                else if (userUpdates.cur_stat_occupancy >= 2.0) {
-                    occupancy.setText("Active");
-                    int orange = Color.rgb(255, 165, 0);
-                    occupancy.setTextColor(orange);
-                }
-                else {
-                    occupancy.setText("Quiet");
-                    occupancy.setTextColor(getResources().getColor(R.color.normal_green));
-                }
-
-                try {
-                    Time current_time = new Time(Time.getCurrentTimezone());
-                    current_time.setToNow();
-                    SimpleDateFormat format = new SimpleDateFormat("HH:mm");
-                    Date date1 = format.parse(current_time.format("%k:%M"));
-                    String next = userUpdates.getCur_stat_next();
-                    Date date2 = format.parse(next);
-                    long difference = date2.getTime() - date1.getTime();
-                    int arrives_in = (int) (difference / 60000);
-                    Log.e("next arrives in", String.valueOf(arrives_in));
-                    statType.setText(userUpdates.getNearest_station().type);
-                    next_arrivalTicker.setText(arrives_in + " minute(s)");
-                    //Log.e("next", userUpdates.getCur_stat_next());
-                    //Log.e("time", String.valueOf(current_time.format("%k:%M")));
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }, 2000);
-    }
-
-    private Task<Integer> getTimes(Station station, String bus) {
-        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-        DocumentReference ref = firebaseFirestore
-                .collection("stationdetails")
-                .document("arrivals")
-                .collection(station.type)
-                .document(station.name)
-                .collection(bus)
-                .document("times");
-
-        ref.get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                DocumentSnapshot snapshot = task.getResult();
-                ArrayList<String> times_reverse_order = new ArrayList<>();
-                ArrayList<String> times_normal_order = new ArrayList<>();
-                SimpleDateFormat dateFormat = new SimpleDateFormat("hmm");
-                SimpleDateFormat dateFormat2 = new SimpleDateFormat("hh:mm");
-                String time;
-
-                for (int i = 5; i >= 0; i--) {
-                    time = snapshot.getString(String.valueOf(i));
-                    try {
-                        Date date = dateFormat.parse(time);
-                        String out = dateFormat2.format(date);
-                        times_reverse_order.add(out);
-                    } catch (ParseException e) {
-                        Log.e("exception", e.getMessage());
-                    }
-                }
-
-                for (int i = 0; i < 6; i++) {
-                    time = snapshot.getString(String.valueOf(i));
-                    try {
-                        Date date = dateFormat.parse(time);
-                        String out = dateFormat2.format(date);
-                        times_normal_order.add(out);
-                    } catch (ParseException e) {
-                        Log.e("exception", e.getMessage());
-                    }
-                }
-
-                next_arrival(times_reverse_order, times_normal_order);
-
-                //just change it to Bus;
-                statType.setText(station.type);
-                //next_arrivalTicker.setText("11:00am");
-            }
-        });
-
-        ref.addSnapshotListener(new EventListener<DocumentSnapshot>() {
-            @Override
-            public void onEvent(@Nullable DocumentSnapshot value, @Nullable FirebaseFirestoreException error) {
-                DocumentSnapshot snapshot = value;
-                ArrayList<String> times_reverse_order = new ArrayList<>();
-                ArrayList<String> times_normal_order = new ArrayList<>();
-                SimpleDateFormat dateFormat = new SimpleDateFormat("hmm");
-                SimpleDateFormat dateFormat2 = new SimpleDateFormat("hh:mm");
-                String time;
-
-                for (int i = 5; i >= 0; i--) {
-                    time = snapshot.getString(String.valueOf(i));
-                    try {
-                        Date date = dateFormat.parse(time);
-                        String out = dateFormat2.format(date);
-                        times_reverse_order.add(out);
-                    } catch (ParseException e) {
-                        Log.e("exception", e.getMessage());
-                    }
-                }
-
-                for (int i = 0; i < 6; i++) {
-                    time = snapshot.getString(String.valueOf(i));
-                    try {
-                        Date date = dateFormat.parse(time);
-                        String out = dateFormat2.format(date);
-                        times_normal_order.add(out);
-                    } catch (ParseException e) {
-                        Log.e("exception", e.getMessage());
-                    }
-                }
-
-                next_arrival(times_reverse_order, times_normal_order);
-            }
-        });
-        return null;
-    }
-
-    @SuppressLint("NewApi")
-    private int next_arrival (ArrayList<String> times_reversed, ArrayList<String> times_normal) {
-        timeHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm");
-                LocalTime now = LocalTime.now();
-                SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
-                String out;
-                Date next1 = new Date();
-
-                //loop forward array
-                for (String time: times_reversed) {
-                    try {
-                        Date user = parser.parse(dtf.format(now));
-                        Date next = parser.parse(time);
-                        if (user.after(next)) {
-                            //loop backwards array
-                            for (String time1: times_normal) {
-                                next1 = parser.parse(time1);
-                                if (next.before(next1)) {
-                                    out = parser.format(next1);
-                                    Log.e("next at", out);
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    } catch (ParseException e) {
-                        Log.e("error", e.getMessage());
-                    }
-                }
-
-                LocalTime date = next1.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
-                Duration timeElapsed = Duration.between(now, date);
-                Log.e("diff", "Time taken: "+ timeElapsed.toMinutes() +" minutes");
-                if (timeElapsed.toMinutes() <= 1) {
-                    next_arrivalTicker.setText("Arriving...");
-                } else
-                    next_arrivalTicker.setText("< " + (timeElapsed.toMinutes() + 1) + " minutes");
-
-                timeHandler.postDelayed(this, 15000);
-            }
-        }, 10);
-        return 1;
     }
 
     @Override
@@ -577,123 +177,14 @@ public class HomeFragment_User extends Fragment implements LocationListener {
         return userLoc;
     }
 
-    private void GeoFireConfig() {
-        userRef = FirebaseDatabase.getInstance().getReference("lrtmateapp");
-        userGeoFire = new GeoFire(userRef);
-    }
-
-    private void GeoFireConfigStations() {
-        stationRef = FirebaseDatabase.getInstance().getReference("StationFences").child("Stations");
-        stationGeoFire = new GeoFire(stationRef);
-    }
-
-    @SuppressLint({"ResourceType", "NewApi"})
-    public void onMapReady(GoogleMap googleMap) {
-        //initialise map for use
-        gMap = googleMap;
-        properties.setgMap(gMap);
-
-        gMap = Tools.configActivityMaps(googleMap);
-
-        //call location before doing anything with it
-        enableMyLocation();
-
-        LatLngBounds mauritius = new LatLngBounds(
-                new LatLng(-20.523707, 57.277314),
-                new LatLng(-20.000119, 57.847562)
-        );
-
-        //initialise ImageView
-        View locationButton = getView().findViewById(0x2);
-        View searchButton = getView().findViewById(R.id.places_autocomplete_search_button);
-
-        // Change the visibility of my location button
-        if (locationButton != null)
-            locationButton.setVisibility(View.GONE);
-
-        // Change the visibility of my location button
-        if (searchButton != null)
-            searchButton.setVisibility(View.GONE);
-
-        gMap.setOnMapLoadedCallback(() -> {
-
-            //gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mauritius, 30));
-
-            gMap.setLatLngBoundsForCameraTarget(mauritius);
-
-        });
-    }
-
-    @SuppressLint("MissingPermission")
-    private void enableMyLocation() {
-        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            if (gMap != null) {
-                gMap.setMyLocationEnabled(true);
-
-                //on load pan camera to user's location
-                LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
-                Criteria mCriteria = new Criteria();
-                String bestProvider = String.valueOf(manager.getBestProvider(mCriteria, true));
-                userUpdates.location = (manager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER));
-                if (userUpdates.location != null) {
-
-                    final double currentLatitude = userUpdates.location.getLatitude();
-                    final double currentLongitude = userUpdates.location.getLongitude();
-                    LatLng loc1 = new LatLng(currentLatitude, currentLongitude);
-
-                    gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(loc1, 16));
-                    gMap.animateCamera(CameraUpdateFactory.zoomTo(10), 2000, null);
-                }
-            }
-        } else {
-            // Permission to access the location is missing. Show rationale and request permission
-            PermissionUtils.requestPermission(((AppCompatActivity) getContext()), LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, true);
-        }
-    }
-
-    @Override
-    public void onLocationChanged(@NonNull Location location) {
-        Log.e(TAG, "GPS LocationChanged");
-        double lat = location.getLatitude();
-        double lng = location.getLongitude();
-        Log.e(TAG, "Received GPS request for " + (lat) + "," + (lng));
-        try {
-            ShowBusesDialog(userUpdates.getNearest_station());
-        } catch (Exception e) {
-            Log.e("stats", "null");
-        }
-    }
-
     @SuppressLint("MissingPermission")
     @Override
     public void onResume() {
-        update_previous();
+        manager = new ToolTipsManager(this);
         //locationManager.requestLocationUpdates(provider, 500, 15, this);
+        if (bottomSheetBehavior_Home_Sheet != null)
+            bottomSheetBehavior_Home_Sheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
         super.onResume();
-    }
-
-    @Override
-    public void onStop() {
-        timeHandler.removeCallbacks(new Runnable() {
-            @Override
-            public void run() {
-
-            }
-        });
-        super.onStop();
-    }
-
-    private void ShowBusesDialog(Station station) {
-        buses_at_station.setContentView(R.layout.choose_bus_dialog);
-        txtBusName = buses_at_station.findViewById(R.id.txtBusStation_home);
-        txtBusName.setText(station.name);
-        buses_at_station.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
-        buses_at_station.show();
-        Extract_BUS_Data(station);
-        //TableLayout buses = buses_at_station.findViewById(R.id.buses_at_station_home);
-        //buses.removeAllViews();
     }
 
     @SuppressLint("NewApi")
@@ -707,126 +198,83 @@ public class HomeFragment_User extends Fragment implements LocationListener {
         d.start();
     }
 
-    public void Extract_BUS_Data(@NotNull Station station) {
-        String getScheduleURL = "https://metromobile.000webhostapp.com/bus_stationLookUp.php?statName=" + station.name;
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, getScheduleURL, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                showJSONS_BUSES(response);
-            }
-        }, error -> {
-
-        });
-        RequestQueue requestQueue = Volley.newRequestQueue(getContext());
-        requestQueue.add(stringRequest);
-    }
-
-    @SuppressLint({"NewApi", "UseCompatLoadingForDrawables"})
-    private void showJSONS_BUSES(String response) {
-        try {
-            JSONObject jsonObject = new JSONObject(response);
-            JSONObject aTime = null;
-            JSONArray result = jsonObject.getJSONArray(Config.JSON_ARRAY_BUSES);
-            TableLayout table_buses = buses_at_station.findViewById(R.id.buses_at_station_home);
-
-            View inflated_buses = LayoutInflater.from(getContext()).inflate(R.layout.bus_to_inflate, table_buses, false);
-            table_buses.addView(inflated_buses);
-
-            FlexboxLayout flexboxBuses = table_buses.findViewById(R.id.flexboxBuses);
-            flexboxBuses.removeAllViews();
-
-            //show buses at station_bus
-            for (int i = 0; i < result.length(); i++) {
-                aTime = result.getJSONObject(i);
-
-                TextView tvName = new TextView(flexboxBuses.getContext());
-                tvName.setText(aTime.getString(Config.BUS_STATION_NAME));
-                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                layoutParams.setMargins(10,10,10,10);
-                tvName.setBackground(getContext().getResources().getDrawable(R.drawable.circle_box));
-                tvName.setTextColor(Color.WHITE);
-                tvName.setTextSize(20);
-                tvName.setGravity(Gravity.CENTER);
-                tvName.setPadding(5, 5, 5, 5);
-                tvName.setLayoutParams(layoutParams);
-
-                // now add to the Table.
-                flexboxBuses.addView(tvName);
-                tvName.setOnClickListener(v -> {
-                    selected_bus = true;
-                    String clickedBus = String.valueOf(tvName.getText());
-                    getTimes(userUpdates.getNearest_station(), clickedBus);
-                    buses_at_station.dismiss();
-                    ImageButton closeDialog = getView().findViewById(R.id.dialog_closeX);
-                    ImageView occupancy_anim = getView().findViewById(R.id.occupancy_anim);
-                    //animateView();
+    @SuppressLint("NewApi")
+    public static void update_favourites() {
+        if (NavigationActivity.tinyDB != null) {
+            TextView tv1 = favs.getRootView().findViewById(R.id.second);
+            TextView tv2 = favs.getRootView().findViewById(R.id.first);
+            if (NavigationActivity.tinyDB.getAll().containsKey("fav1")) {
+                Favourite favourite = NavigationActivity.tinyDB.getObject("fav1", Favourite.class);
+                tv1.setText(favourite.name);
+                tv1.setTextSize(14.5f);
+                tv1.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(tv1.getContext(), favourite.address, Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
-        } catch (JSONException e) {
-            e.printStackTrace();
+            else {
+                tv1.setText("No Address on Record.");
+                tv1.setTextSize(14.5f);
+            }
+
+            if (NavigationActivity.tinyDB.getAll().containsKey("fav2")) {
+                Favourite favourite = NavigationActivity.tinyDB.getObject("fav2", Favourite.class);
+                tv2.setText(favourite.name);
+                tv2.setTextSize(14.5f);
+                tv2.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(tv2.getContext(), favourite.address, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            else {
+                tv2.setText("No Address on Record.");
+                tv2.setTextSize(14.5f);
+            }
         }
     }
 
     @SuppressLint("NewApi")
-    public static void update_favourites() {
-        if (HomeFragment_User.preferences.contains("first")) {
-            ArrayList<String> strings = new ArrayList<>();
-            Set<String> a = preferences.getStringSet("first", null);
-            Object[] f = a.toArray();
-            for (Object c : f) {
-                strings.add(c.toString());
-            }
-            for (String s : strings) {
-                if (s.contains(" ")) {
-                    TextView tv = favs.getRootView().findViewById(R.id.first);
-                    tv.setText(s);
-                    tv.setTextSize(14.5f);
-                }
-            }
-        }
-
-        if (HomeFragment_User.preferences.contains("second")) {
-            ArrayList<String> strings = new ArrayList<>();
-            Set<String> b = preferences.getStringSet("second", null);
-            Object[] f = b.toArray();
-            for (Object c : f) {
-                strings.add(c.toString());
-            }
-            for (String s : strings) {
-                if (s.contains(" ")) {
-                    TextView tv = favs.getRootView().findViewById(R.id.second);
-                    tv.setText(s);
-                    tv.setTextSize(14.5f);
-                }
-            }
-        }
-    }
-
     static void update_previous () {
-        TinyDB tinyDB = Maps_Full_Access.tinyDB;
-        ArrayList<String> prevs = tinyDB.getListString("Prev");
-        if (prevs != null) {
-            String instruct = "";
-            for (String ins: prevs) {
-                instruct += ins;
-            }
-            TextView tv = previous.getRootView().findViewById(R.id.prev1);
-            tv.setText(instruct);
-            tv.setTextSize(14.5f);
-            tv.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Toast.makeText(previous.getContext(), "Follow this route again!", Toast.LENGTH_LONG).show();
+        if (NavigationActivity.tinyDB != null) {
+            TextView tv1 = ll_no_previous.findViewById(R.id.no_previous);
+            if (NavigationActivity.tinyDB.getAll().containsKey("Previous")) {
+                if (tv1.getVisibility() != View.GONE) {
+                    tv1.setVisibility(View.GONE);
+                    ll_no_previous.setVisibility(View.GONE);
                 }
-            });
+                //tinyDB.remove("Previous");
+                if (previous_trips.getVisibility() != View.VISIBLE)
+                    previous_trips.setVisibility(View.VISIBLE);
+
+                routes_objects = NavigationActivity.tinyDB.getListObject("Previous", Route.class);
+                for(Object objs : routes_objects){
+                    routes.add((Route) objs);
+                }
+                setAdapter_For_Previous(routes, previous_trips.getContext());
+            }
+            else {
+                if (previous_trips.getVisibility() != View.GONE) {
+                    previous_trips.setVisibility(View.GONE);
+                    if (tv1.getVisibility() != View.VISIBLE)
+                        tv1.setVisibility(View.VISIBLE);
+                }
+            }
         }
         else {
-            Log.e("nothing", "in");
+            TextView tv1 = ll_no_previous.findViewById(R.id.no_previous);
+            if (previous_trips.getVisibility() != View.GONE) {
+                previous_trips.setVisibility(View.GONE);
+                if (tv1.getVisibility() != View.VISIBLE)
+                    tv1.setVisibility(View.VISIBLE);
+            }
         }
     }
 
     static void update_intervals () {
-        TinyDB tinyDB = Maps_Full_Access.tinyDB;
         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
         DocumentReference ref = firebaseFirestore
                 .collection("stationdetails")
@@ -843,10 +291,9 @@ public class HomeFragment_User extends Fragment implements LocationListener {
                     double bus_interval_163 = (snapshot.getDouble(String.valueOf(new Bus_163().getName())));
                     double bus_interval_153 = (snapshot.getDouble(String.valueOf(new Bus_153().getName())));
 
-                    tinyDB.putDouble("3", bus_interval_3);
-                    tinyDB.putDouble("163", bus_interval_163);
-                    tinyDB.putDouble("153", bus_interval_153);
-                    Log.e("DONE!", "UPDATED INTERVALS");
+                    NavigationActivity.tinyDB.putDouble("3", bus_interval_3);
+                    NavigationActivity.tinyDB.putDouble("163", bus_interval_163);
+                    NavigationActivity.tinyDB.putDouble("153", bus_interval_153);
                 }
             }
         });
@@ -859,5 +306,225 @@ public class HomeFragment_User extends Fragment implements LocationListener {
                 }
             }
         });
+    }
+
+    static void setAdapter_For_Previous (ArrayList<Route> routes, Context context) {
+        PreviousAdapter adapter = new PreviousAdapter(routes, context, previous_trips);
+        RecyclerView.LayoutManager manager = new LinearLayoutManager(context);
+        previous_trips.setLayoutManager(manager);
+        previous_trips.setItemAnimator(new DefaultItemAnimator());
+        previous_trips.setAdapter(adapter);
+        if (adapter.getItemCount() >= 4)
+            previous_trips.getLayoutParams().height = context.getResources().getDisplayMetrics().heightPixels / 4;
+    }
+
+    static void start_routing (Context context, Route route) {
+        Journey journey = new Journey();
+        journey.setDestination_walk(route.getDestination_walking());
+        journey.setOrigin_walk(route.getOrigin_walking());
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(context);
+        builderSingle.setTitle("Select Option:");
+
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(context, R.layout.choose_option);
+        arrayAdapter.add("Follow Route Directly From Same Origin");
+        arrayAdapter.add("Follow Route From My Current Location");
+        arrayAdapter.add("View Route Details");
+
+        builderSingle.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        builderSingle.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String strName = arrayAdapter.getItem(which);
+                switch (which) {
+                    case 0:
+                        MapsFragmentExtras.setRouteAdapter(route, context);
+                        NavigationActivity.fm.beginTransaction()
+                                .hide(fragment)
+                                .show(new MapsFragmentExtras())
+                                .commitNow();
+                        NavigationActivity.navigation.setSelectedItemId(R.id.navigation_nearMe);
+                        NearMeHolder.maps_flipper.setDisplayedChild(1);
+                        break;
+                    case 2:
+                        dialog.dismiss();
+                        Dialog inner = new Dialog(context);
+                        inner.setContentView(R.layout.home_route_steps);
+                        CardView cv = inner.findViewById(R.id.close_home_ins);
+                        cv.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                inner.dismiss();
+                            }
+                        });
+                        inner.setTitle(strName);
+                        inner.show();
+                        setRouteAdapter(route, context, inner);
+                        break;
+                }
+            }
+        });
+        builderSingle.show();
+    }
+
+    //show the directions for a bus route
+    static void setRouteAdapter (Route route, Context context, Dialog dialog) {
+        RecyclerView recyclerView_full = dialog.findViewById(R.id.route_recycler);
+        Route_RecyclerAdapter adapter = new Route_RecyclerAdapter(route.getInstructions(), route, context);
+        RecyclerView.LayoutManager manager = new LinearLayoutManager(context);
+        recyclerView_full.setLayoutManager(manager);
+        recyclerView_full.setItemAnimator(new DefaultItemAnimator());
+        recyclerView_full.setAdapter(adapter);
+    }
+
+    @Override
+    public void onTipDismissed(View view, int anchorViewId, boolean byUser) {
+        if (byUser) {
+            times_seen++;
+            NavigationActivity.tinyDB.putInt("times_seen", times_seen);
+        }
+    }
+
+    static void showToolTipsHome() {
+        ToolTipsManager manager = HomeFragment_User.manager;
+        int position = ToolTip.POSITION_BELOW;
+        int align = ToolTip.ALIGN_CENTER;
+        ArrayList<View> views = new ArrayList<>();
+        views.add(favs);
+        views.add(previous_trips);
+        views.add(NavigationActivity.legendButton);
+        views.add(ll_home_sheet);
+        for (View view: views) {
+            displayToolTip(manager, position, align, view);
+        }
+    }
+
+    private static void displayToolTip(ToolTipsManager manager, int position, int align, View view) {
+        String message = "";
+
+        switch (view.getId()) {
+            case R.id.previous_trips:
+                message = "Your Trips Are Tracked Here.";
+                break;
+            case R.id.favs:
+                message = "Your Favourite Places Are Kept Here.";
+                break;
+            case R.id.legend_show:
+                NavigationActivity.displayToolTip(position, align, view);
+                break;
+            case R.id.bottom_home_sheet:
+                message = "Check If Everything Is Normal.";
+                position = ToolTip.POSITION_ABOVE;
+                break;
+        }
+        if (!message.equals("")) {
+            ToolTip.Builder builder = new ToolTip.Builder(view.getContext(), view, main_container, message, position);
+            builder.setAlign(align);
+            builder.setBackgroundColor(Color.BLUE);
+            manager.show(builder.build());
+        }
+        else {
+            manager.findAndDismiss(view);
+            ToolTip.Builder builder = new ToolTip.Builder(view.getContext(), view, main_container, "Remind Yourself of Icons.", position);
+            builder.setAlign(align);
+            builder.setBackgroundColor(Color.BLUE);
+            manager.show(builder.build());
+        }
+    }
+
+    private void initService_Updates () {
+        // get the bottom sheet view
+        ll_home_sheet = getView().findViewById(R.id.bottom_home_sheet);
+        // init the bottom sheet behavior
+        bottomSheetBehavior_Home_Sheet = BottomSheetBehavior.from(ll_home_sheet);
+
+        // change the state of the bottom sheet
+        bottomSheetBehavior_Home_Sheet.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        TextView tv_update = ll_home_sheet.findViewById(R.id.service_update);
+        try {
+            ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+            if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
+                    connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
+
+                Connection.Response response = Jsoup.connect("https://mauritiusmetroexpress.mu/")
+                        .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                        .timeout(10000)
+                        .ignoreHttpErrors(true)
+                        .execute();
+
+                int statusCode = response.statusCode();
+                if(statusCode == 200) {
+                    //we are connected to a network
+                    Document doc = Jsoup.connect("https://mauritiusmetroexpress.mu/").get();
+                    Element link = doc.select("div[class=mtphr-dnt-tick mtphr-dnt-default-tick mtphr-dnt-clearfix]").first();
+
+                    tv_update.setText(link.text());
+                    tv_update.setTextSize(14.5f);
+                    NavigationActivity.tinyDB.putString("Update", link.text());
+                }
+                else {
+                    if (NavigationActivity.tinyDB.getAll().containsKey("Update")) {
+                        tv_update.setText(NavigationActivity.tinyDB.getString("Update"));
+                    }
+                    else {
+                        tv_update.setText("[You are not connected to the Internet]\nNo Updates At This Time.");
+                    }
+                    tv_update.setTextSize(14.5f);
+                }
+            }
+            else {
+                if (NavigationActivity.tinyDB.getAll().containsKey("Update")) {
+                    tv_update.setText(NavigationActivity.tinyDB.getString("Update"));
+                }
+                else {
+                    tv_update.setText("[You are not connected to the Internet]\nNo Updates At This Time.");
+                }
+                tv_update.setTextSize(14.5f);
+            }
+
+            // set callback for changes
+            bottomSheetBehavior_Home_Sheet.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+                @Override
+                public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                    switch (newState) {
+                        case BottomSheetBehavior.STATE_HIDDEN:
+                            break;
+                        case BottomSheetBehavior.STATE_HALF_EXPANDED:
+                        case BottomSheetBehavior.STATE_COLLAPSED:
+                        case BottomSheetBehavior.STATE_EXPANDED:
+                            break;
+                    }
+                }
+
+                @Override
+                public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                    float h = bottomSheet.getHeight();
+                    float off = h * slideOffset;
+
+                    switch (bottomSheetBehavior_Home_Sheet.getState()) {
+                        case BottomSheetBehavior.STATE_DRAGGING:
+                            break;
+                        case BottomSheetBehavior.STATE_SETTLING:
+                            break;
+                        //reposition marker at the center
+                        case BottomSheetBehavior.STATE_HIDDEN:
+                            break;
+                        case BottomSheetBehavior.STATE_EXPANDED:
+
+                            break;
+                        case BottomSheetBehavior.STATE_COLLAPSED:
+
+                            break;
+                    }
+                }
+            });
+        } catch (IOException e) {
+            Toast.makeText(getContext(), "Failed due to " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 }

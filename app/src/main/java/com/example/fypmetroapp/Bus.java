@@ -1,6 +1,7 @@
 package com.example.fypmetroapp;
 
 import android.graphics.Color;
+import android.location.Location;
 import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -25,6 +26,28 @@ public class Bus {
     int name;
     ArrayList<Station> stops;
     Polyline busPolyline;
+    String location;
+    String bus_name;
+
+    public Bus() {
+
+    }
+
+    public String getBus_name() {
+        return bus_name;
+    }
+
+    public void setBus_name(String bus_name) {
+        this.bus_name = bus_name;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
 
     public Polyline getBusPolyline() {
         return busPolyline;
@@ -51,9 +74,7 @@ public class Bus {
     }
 
     //show bus route line
-    public void busRoute (Bus bus) {
-        GoogleMap googleMap = Maps_Full_Access.gMap;
-        ArrayList<Polyline> route = Maps_Full_Access.route;
+    public void busRoute (Bus bus, GoogleMap googleMap, ArrayList<Polyline> route) {
         ArrayList<Station> busStops = bus.getStops();
         Station previous;
 
@@ -63,12 +84,8 @@ public class Bus {
 
             if (next < busStops.size()) {
                 Station station = busStops.get(next);
-
                 String origin = String.valueOf(previous.position.latitude) + "," + String.valueOf(previous.position.longitude);
                 String destination = String.valueOf(station.position.latitude) + "," + String.valueOf(station.position.longitude);
-
-                Log.e(previous.name, origin);
-                Log.e(station.name, destination);
 
                 //manipulate directionsAPI
                 DirectionsResult results = getDirectionsDetails(origin, destination, TravelMode.DRIVING);
@@ -120,8 +137,6 @@ public class Bus {
     }
 
     private void togglePolyline () {
-        if (busPolyline.isVisible()) {
-            busPolyline.setVisible(false);
-        }
+        busPolyline.setVisible(!busPolyline.isVisible());
     }
 }

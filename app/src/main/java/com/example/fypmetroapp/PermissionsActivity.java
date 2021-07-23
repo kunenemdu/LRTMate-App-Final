@@ -178,6 +178,6 @@ public class PermissionsActivity extends AppCompatActivity implements LocationLi
     @Override
     public void onProviderDisabled(@NonNull String provider) {
         Log.e("not enabled", "provider");
-        startSplashActivity();
+        checkLocationPermission();
     }
 }

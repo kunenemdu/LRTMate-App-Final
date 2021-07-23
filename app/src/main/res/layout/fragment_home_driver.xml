@@ -23,6 +23,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center"
+            android:visibility="gone"
             android:orientation="vertical"
             app:layout_constraintBottom_toTopOf="@+id/guideline3"
             app:layout_constraintEnd_toEndOf="parent"
@@ -63,7 +64,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:visibility="invisible"
+            android:visibility="visible"
             android:layout_marginBottom="?actionBarSize">
 
             <androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -170,10 +171,11 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
+                                        android:id="@+id/selected_bus"
                                         android:layout_gravity="center"
                                         style="@style/TextAppearance.AppCompat.Headline"
                                         android:textSize="29dp"
-                                        android:text="153"/>
+                                        android:text="..."/>
 
                                 </LinearLayout>
 

@@ -186,23 +186,23 @@ public class SignupFragment extends Fragment implements AdapterView.OnItemSelect
                                                     .addOnFailureListener(e -> Log.e(TAG, "onfailure triggered!" + e.toString()));
                                         }
 
-                                        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-                                        SharedPreferences.Editor editor = pref.edit();
-                                        editor.putString("full_name", name);
-                                        editor.putString("user_id", uid);
-                                        editor.putString("email", email);
-                                        editor.putInt("trips", 0);
-                                        editor.putInt("trips", 0);
-                                        editor.putString("role", role);
+                                        TinyDB tinyDB = new TinyDB(getActivity());
+                                        tinyDB.putString("full_name", name);
+                                        tinyDB.putString("user_id", uid);
+                                        tinyDB.putString("email", email);
+                                        tinyDB.putInt("trips", 0);
+                                        tinyDB.putString("role", role);
+
+                                        User user = new User(name, uid, email, role);
+                                        tinyDB.putObject("User", user);
 
                                         if (role.equals("Driver")) {
-                                            editor.putInt("points", 15);
+                                            tinyDB.putInt("points", 15);
                                         }
                                         else if (role.equals("User")) {
-                                            editor.putInt("points", 5);
+                                            tinyDB.putInt("points", 5);
                                         }
 
-                                        editor.apply();
                                         //Toast.makeText(getContext(), "Registration Success!", Toast.LENGTH_SHORT).show();
                                         registerProgress();
                                         //progressDialog.dismiss();

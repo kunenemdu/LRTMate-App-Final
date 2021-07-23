@@ -50,11 +50,19 @@
                     android:layout_height="match_parent">
 
                     <TextView
-                        android:id="@+id/occupancy"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:padding="5dp"
-                        android:text="Quiet"
+                        android:text="Live Occupancy:"
+                        android:layout_gravity="right|center"
+                        android:textSize="12dp" />
+
+                    <TextView
+                        android:id="@+id/stat_occupancy"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="5dp"
+                        android:text="x"
                         android:layout_gravity="right|center"
                         android:textSize="12dp" />
 

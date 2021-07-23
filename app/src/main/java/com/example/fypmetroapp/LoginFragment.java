@@ -43,7 +43,7 @@ import java.util.Map;
 import static android.content.Context.MODE_PRIVATE;
 
 public class LoginFragment extends Fragment implements AdapterView.OnItemSelectedListener {
-
+    static int times_seen = 0;
     private FirebaseAnalytics mFirebaseAnalytics;
     ImageButton login, reset;
     LinearLayout emailLL, passLL, resetLL, roleLL, logDetailsLL, logButtonLL;
@@ -164,19 +164,29 @@ public class LoginFragment extends Fragment implements AdapterView.OnItemSelecte
                         String uid = firebaseAuth.getCurrentUser().getUid();
                         //Log.e("user", userid);
 
-                        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = pref.edit();
-                        editor.putString("role", role);
-                        editor.putString("user_id", uid);
-
                         DocumentReference documentReference = firebaseFirestore
                                 .collection(role).document(uid);
                         documentReference.get().addOnCompleteListener(task1 -> {
                             if (task1.isSuccessful()) {
                                 DocumentSnapshot documentSnapshot = task1.getResult();
-                                String name = documentSnapshot.getString("full_name");
-                                editor.putString("full_name", name);
-                                editor.apply();
+                                TinyDB tinyDB = new TinyDB(getContext());
+                                tinyDB.putString("role", role);
+                                tinyDB.putString("user_id", uid);
+                                tinyDB.putString("full_name", documentSnapshot.getString("full_name"));
+                                tinyDB.putString("email", documentSnapshot.getString("email"));
+                                tinyDB.putDouble("trips", documentSnapshot.getDouble("trips"));
+                                tinyDB.putDouble("points", documentSnapshot.getDouble("points"));
+
+                                User user = new User(documentSnapshot.getString("full_name"), uid, userMail, role);
+                                tinyDB.putObject("User", user);
+                                if (tinyDB.getAll().containsKey("times_seen")) {
+                                    times_seen = tinyDB.getInt("times_seen");
+                                    Log.e("Has Seen Tooltips", times_seen + " Before!");
+                                }
+                                else {
+                                    tinyDB.putInt("times_seen", times_seen);
+                                    Log.e("Never", "Seen Tooltips Before!");
+                                }
                                 //Log.e("prefs are", pref.getAll().toString());
                                 //Log.e("user is", documentSnapshot.toString());
                                 loginProgress();

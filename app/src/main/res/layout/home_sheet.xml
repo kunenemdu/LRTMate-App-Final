@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/bottom_home_sheet"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    tools:context=".HomeFragment_User"
     android:background="@android:color/transparent"
     android:orientation="vertical"
-    app:behavior_hideable="false"
+    app:behavior_hideable="true"
     app:behavior_peekHeight="80dp"
     app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
@@ -51,22 +53,23 @@
             <LinearLayout
                 android:layout_marginTop="2dp"
                 android:layout_width="wrap_content"
+                android:layout_marginBottom="50sp"
                 android:layout_gravity="center"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="50dp"
+                    android:id="@+id/service_update"
+                    android:layout_gravity="center"
+                    android:layout_marginVertical="5sp"
+                    android:layout_height="wrap_content"
                     android:text="PORT LOUIS TO ROSE HILL DELAY ~ 5MINS"/>
 
                 <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="50dp"
-                    android:text="PORT LOUIS TO ROSE HILL DELAY ~ 5MINS"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginVertical="5sp"
                     android:layout_height="wrap_content"
                     android:text="PORT LOUIS TO ROSE HILL DELAY ~ 5MINS"/>
 

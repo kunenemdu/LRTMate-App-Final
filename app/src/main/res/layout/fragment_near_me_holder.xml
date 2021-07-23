@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:elevation="5dp"
+    android:id="@+id/near_me_holder"
+    android:orientation="vertical"
+    android:layout_height="match_parent"
+    android:animateLayoutChanges="true"
+    tools:context=".NearMeHolder">
+
+    <ViewFlipper
+        android:layout_width="match_parent"
+        android:layout_weight="50"
+        android:id="@+id/maps_flipper"
+        android:layout_height="match_parent"
+        android:inAnimation="@anim/slide_in"
+        android:outAnimation="@anim/slide_out">
+
+        <fragment
+            android:layout_width="match_parent"
+            android:name="com.example.fypmetroapp.Maps_Full_Access"
+            class="com.example.fypmetroapp.Maps_Full_Access"
+            android:layout_height="match_parent"/>
+
+        <fragment
+            android:layout_width="match_parent"
+            android:name="com.example.fypmetroapp.MapsFragmentExtras"
+            class="com.example.fypmetroapp.MapsFragmentExtras"
+            android:layout_height="match_parent"/>
+
+        <fragment
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:name="com.example.fypmetroapp.FollowRouteFragment"
+            class="com.example.fypmetroapp.FollowRouteFragment"/>
+
+    </ViewFlipper>
+
+</LinearLayout>

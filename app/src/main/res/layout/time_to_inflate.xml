@@ -21,7 +21,7 @@
             android:text="BARKLY"
             android:layout_weight="4"
             android:layout_margin="0dp"
-            style="@style/station_text"/>
+            style="@style/stat_text_style"/>
 
         <TextView
             android:layout_height="25dp"
@@ -31,7 +31,7 @@
             android:layout_weight="4"
             android:text="13:41:00"
             android:layout_margin="0dp"
-            style="@style/station_text"/>
+            style="@style/stat_text_style"/>
 
     </LinearLayout>
 

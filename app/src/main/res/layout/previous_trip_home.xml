@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/summary_border"
+    android:orientation="horizontal">
+
+    <View
+        android:layout_width="5dp"
+        android:layout_height="match_parent"
+        android:layout_marginRight="10dp"
+        android:background="@color/main_blue"
+        android:layout_marginEnd="10dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="3"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.1"
+                android:text="Duration:"
+                style="@style/summary_times"
+                android:layout_marginEnd="5dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.7"
+                android:text="2 hours"
+                style="@style/summary_times"
+                android:id="@+id/duration_text"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_weight="1"
+                android:weightSum="2"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:layout_width="5sp"
+                    android:layout_weight="1.8"
+                    android:layout_height="1dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_weight="0.1"
+                    android:textColor="@color/normal_green"
+                    android:layout_height="wrap_content"
+                    android:text="Length:"
+                    style="@style/summary_times"
+                    android:layout_marginEnd="5dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_weight="0.1"
+                    android:textColor="@color/normal_green"
+                    android:layout_height="wrap_content"
+                    android:text="in metres"
+                    style="@style/summary_times"
+                    android:id="@+id/length_text"
+                    android:layout_marginEnd="5dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_margin="5sp"
+            android:gravity="center"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/summary_text"
+                android:text="Summary:" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/full_text"
+                android:paddingHorizontal="5sp"
+                style="@style/summary_text"
+                android:text="LRT -> PL -> Walking" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

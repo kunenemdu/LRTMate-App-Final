@@ -6,7 +6,7 @@
         android:title="My Profile"/>
     <item android:id="@+id/settings"
         android:icon="@drawable/ic_outline_settings_24"
-        android:title="Settings"/>
+        android:title="Preferences"/>
     <item android:id="@+id/logout"
         android:icon="@drawable/ic_baseline_logout"
         android:title="Sign Out"/>

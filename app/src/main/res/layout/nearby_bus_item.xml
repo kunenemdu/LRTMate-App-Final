@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bus_inflate"
+    android:layout_width="match_parent"
+    android:background="@drawable/summary_border"
+    android:layout_marginVertical="5sp"
+    android:theme="@style/amu_Bubble.TextAppearance.Light"
+    android:layout_height="wrap_content">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="45dp"
+                android:src="@drawable/bus_pin_inflate" />
+
+            <View
+                android:layout_width="40dp"
+                android:layout_height="3.5dp"
+                android:textAlignment="center"
+                android:background="@color/quantum_googblueA700"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_marginStart="15sp"
+            android:layout_gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:weightSum="100">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_weight="95"
+                    android:orientation="vertical"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/name_station"
+                        style="@style/stat_text_style"
+                        android:text="Bus Station Name"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:id="@+id/distance_station"
+                        android:textColor="@color/normal_green"
+                        android:layout_height="wrap_content"
+                        android:text="x metres away"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_weight="5"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:layout_height="match_parent">
+
+                    <ImageView
+                        android:layout_width="35sp"
+                        android:layout_gravity="center"
+                        android:layout_height="35sp"
+                        android:src="@drawable/ic_outline_info"
+                        app:tint="@color/main_blue" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/ride_stop_style"
+                        android:layout_gravity="center"
+                        android:text="View"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

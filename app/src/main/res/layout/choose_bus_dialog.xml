@@ -35,7 +35,7 @@
                         style="@style/TextAppearance.AppCompat.Headline"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Choose Bus at"
+                        android:text="Choose Bus To"
                         android:textSize="12dp" />
 
                     <TextView
@@ -43,7 +43,7 @@
                         style="@style/TextAppearance.AppCompat.Headline"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Reduit"
+                        android:text="Send Updates For"
                         android:layout_marginHorizontal="3dp"
                         android:textSize="12dp" />
 

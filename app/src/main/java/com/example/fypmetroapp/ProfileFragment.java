@@ -8,6 +8,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +28,7 @@ public class ProfileFragment extends Fragment {
     TextView fullName, pointsView, tripsView;
     FirebaseAuth firebaseAuth;
     FirebaseFirestore firebaseFirestore;
+    private TinyDB tinyDB = NavigationActivity.tinyDB;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -43,7 +45,6 @@ public class ProfileFragment extends Fragment {
         fullName = getView().findViewById(R.id.userFull);
         pointsView = getView().findViewById(R.id.points);
         tripsView = getView().findViewById(R.id.trips);
-
         getuser();
     }
 
@@ -52,21 +53,25 @@ public class ProfileFragment extends Fragment {
             @Override
             public void run() {
                 String userid = firebaseAuth.getCurrentUser().getUid();
-                //Log.e("user", userid);
-                SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-                String role = pref.getString("role", null);
+                if (userid != null) {
+                    if (NavigationActivity.tinyDB.getAll().containsKey("User")) {
+                        User user = NavigationActivity.tinyDB.getObject("User", User.class);
+                        String role = user.getRole();
+                        Log.e("id", userid);
 
-                DocumentReference documentReference = firebaseFirestore.collection(role).document(userid);
-                documentReference.addSnapshotListener(getActivity(), (documentSnapshot, error) -> {
-                    if (documentSnapshot != null) {
-                        //show users full name
-                        fullName.setText("Hello, " + documentSnapshot.getString("full_name"));
-                        pointsView.setText(String.valueOf(documentSnapshot.getLong("points")));
-                        tripsView.setText(String.valueOf(documentSnapshot.getLong("trips")));
+                        DocumentReference documentReference = firebaseFirestore.collection(role).document(userid);
+                        documentReference.addSnapshotListener(getActivity(), (documentSnapshot, error) -> {
+                            if (documentSnapshot != null) {
+                                //show users full name
+                                fullName.setText("Hello, " + user.getName());
+                                pointsView.setText(String.valueOf(documentSnapshot.getLong("points")));
+                                tripsView.setText(String.valueOf(documentSnapshot.getLong("trips")));
+                            }
+                        });
                     }
-                });
+                }
             }
-        }, 3000);
+        }, 10000);
     }
 
     @Override

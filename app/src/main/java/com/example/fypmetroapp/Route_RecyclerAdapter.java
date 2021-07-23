@@ -5,6 +5,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,11 +28,13 @@ public class Route_RecyclerAdapter extends RecyclerView.Adapter<Route_RecyclerAd
     public class MyViewHolder extends RecyclerView.ViewHolder {
         private final TextView route_step_text;
         private Dialog ride;
+        private ImageView more;
 
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
             route_step_text = itemView.findViewById(R.id.route_step_text);
             ride = new Dialog(context);
+            more = itemView.findViewById(R.id.more_info_ride);
         }
     }
 
@@ -49,14 +52,20 @@ public class Route_RecyclerAdapter extends RecyclerView.Adapter<Route_RecyclerAd
         if (instruction.contains("Ride")) {
             if (route.getRidingList() != null) {
                 holder.ride = Maps_Full_Access.ride_stops_dialog;
-                holder.route_step_text.setOnClickListener(new View.OnClickListener() {
+                View.OnClickListener onClickListener = new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Maps_Full_Access.show_ride_stops_buses(context, route.getRidingList(), instruction);
+                        MapsFragmentExtras.show_ride_stops_buses(context, route.getRidingList(), instruction, route.origin);
                     }
-                });
+                };
+                holder.route_step_text
+                        .setOnClickListener(onClickListener);
+                holder.more.setVisibility(View.VISIBLE);
+                holder.more.setOnClickListener(onClickListener);
             }
         }
+        else
+            holder.more.setVisibility(View.GONE);
     }
 
     @Override

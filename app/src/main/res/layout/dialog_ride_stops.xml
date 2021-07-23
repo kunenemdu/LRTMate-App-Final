@@ -30,7 +30,7 @@
                     android:layout_gravity="center"
                     android:layout_marginHorizontal="15pt"
                     android:layout_marginTop="10pt"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/ride_for"
@@ -41,8 +41,16 @@
                         android:text="Ride for x Stops"
                         android:textSize="18dp" />
 
-
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/ride_from"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="5dp"
+                    android:layout_gravity="center"
+                    android:textSize="11sp"
+                    android:text="From:" />
 
             </LinearLayout>
 
@@ -106,7 +114,7 @@
                     app:cardCornerRadius="55dp">
 
                     <ImageButton
-                        android:id="@+id/dialog_closeX"
+                        android:id="@+id/dialog_close_ride"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"

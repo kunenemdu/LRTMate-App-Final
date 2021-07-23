@@ -12,6 +12,7 @@ public class Victoria extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.1629758, 57.4979997);
         station.buses = getBuses();
+        station.occupancy = 25;
         return station;
     }
 

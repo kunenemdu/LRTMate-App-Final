@@ -12,6 +12,7 @@ public class BeauBassin extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.2231152, 57.4681413);
         station.buses = getBuses();
+        station.occupancy = 2;
         return station;
     }
 

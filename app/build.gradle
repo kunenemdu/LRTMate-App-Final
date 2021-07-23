@@ -105,6 +105,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-database:19.7.0'
     implementation 'com.github.pires:obd-java-api:1.0'
     implementation 'com.robinhood.ticker:ticker:2.0.2'
+    implementation 'com.tomergoldst.android:tooltips:1.0.10'
+    implementation 'org.jsoup:jsoup:1.13.1'
 }
 
 configurations {

@@ -12,6 +12,7 @@ public class QB extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.2653072, 57.4783713);
         station.buses = getBuses();
+        station.occupancy = 12;
         return station;
     }
 

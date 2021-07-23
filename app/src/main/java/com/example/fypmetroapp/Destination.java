@@ -1,14 +1,17 @@
 package com.example.fypmetroapp;
 
-import com.google.android.gms.maps.model.LatLng;
-
 public class Destination {
+    Station station_bus;
+    Station station_lrt;
     String destination;
     String name;
     String address;
     LatLng position;
-    Station station_bus;
-    Station station_lrt;
+
+    public Destination () {}
+
+    //getters and setters
+    //...
 
     public Station getStation_lrt() {
         return station_lrt;

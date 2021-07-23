@@ -12,6 +12,7 @@ public class Pailles extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.1847028, 57.4816405);
         station.buses = getBuses();
+        station.occupancy = 8;
         return station;
     }
 

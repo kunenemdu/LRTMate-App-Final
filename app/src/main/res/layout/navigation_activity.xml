@@ -62,11 +62,10 @@
 
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_weight="19"
+                            android:layout_weight="18.5"
                             android:orientation="vertical"
                             android:layout_height="?actionBarSize">
                         </LinearLayout>
-
 
                         <ImageButton
                             android:id="@+id/legend_show"
@@ -75,6 +74,15 @@
                             android:layout_height="?attr/actionBarSize"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:src="@drawable/ic_outline_info"
+                            android:tint="@color/main_blue" />
+
+                        <ImageButton
+                            android:id="@+id/show_tips"
+                            android:layout_weight="0.5"
+                            android:layout_width="?actionBarSize"
+                            android:layout_height="?attr/actionBarSize"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_baseline_help_outline_24"
                             android:tint="@color/main_blue" />
 
                     </LinearLayout>

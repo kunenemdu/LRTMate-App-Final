@@ -5,7 +5,6 @@ import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
 import com.firebase.geofire.GeoQueryDataEventListener;
 import com.google.android.flexbox.FlexboxLayout;
-import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -15,6 +14,7 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.Dash;
 import com.google.android.gms.maps.model.Dot;
 import com.google.android.gms.maps.model.Gap;
+import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PatternItem;
@@ -22,18 +22,18 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.DefaultItemAnimator;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.Notification;
@@ -57,7 +57,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
-import android.text.Html;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
@@ -95,14 +94,11 @@ import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.AutocompletePrediction;
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
 import com.google.android.libraries.places.api.model.Place;
-import com.google.android.libraries.places.api.model.TypeFilter;
 import com.google.android.libraries.places.api.net.FetchPlaceRequest;
 import com.google.android.libraries.places.api.net.FetchPlaceResponse;
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsResponse;
 import com.google.android.libraries.places.api.net.PlacesClient;
-import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
-import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
@@ -111,6 +107,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -133,7 +130,6 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 import com.mancj.materialsearchbar.MaterialSearchBar;
 import com.mancj.materialsearchbar.adapter.SuggestionsAdapter;
-import com.tomtom.online.sdk.routing.OnlineRoutingApi;
 import com.tomtom.online.sdk.routing.RoutingApi;
 
 import org.jetbrains.annotations.NotNull;
@@ -147,7 +143,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -157,14 +152,17 @@ import java.util.concurrent.TimeUnit;
 import static android.graphics.Color.TRANSPARENT;
 import static android.graphics.Color.green;
 
-public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListener, LocationListener {
+public class Maps_Full_Access extends Fragment implements LocationListener {
 
     //Variable Declarations
     public static GoogleMap gMap;
+    public static GoogleMap map_displaying_extras;
     private static final String TAG = NavigationActivity.class.getSimpleName();
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private Marker lrtMarker;
     private Marker busMarker;
+    Marker bus_location;
+    ValueEventListener busListener;
     TextView titleText;
     private View locationButton;
     private View searchButton;
@@ -178,27 +176,17 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     LatLng curLocationLatLng;
     Location curLocation;
     TextView textAddress;
-    LinearLayout llNearbySheet;
-    LinearLayout llBus_Stations_Route;
-    static LinearLayout llFollow_Route;
-    LinearLayout llBottomSheet;
-    LinearLayout llLRT_StationSheet_Sche;
-    LinearLayout llBUS_StationSheet_Sche;
-    CardView rlDirections;
+    static LinearLayout llNearbySheet, llBus_Stations_Route, llFollow_Route, llBottomSheet, llLRT_StationSheet_Sche, llBUS_StationSheet_Sche;
     private Polyline polyline_LRT;
     private Polyline polyline_BUS;
     private Polyline polyline_Directions;
-    BottomSheetBehavior<LinearLayout> bottomSheetBehavior_NearBy;
-    BottomSheetBehavior<LinearLayout> bottomSheetBehavior_Buses_Stations_Route;
-    BottomSheetBehavior<LinearLayout> bottomSheetBehavior_Follow_Route;
-    BottomSheetBehavior<LinearLayout> bottomSheetBehavior_Directions;
-    BottomSheetBehavior<LinearLayout> bottomSheetBehavior_LRT_ClickedStation_Sche;
+    static BottomSheetBehavior<LinearLayout> bottomSheetBehavior_NearBy,
+            bottomSheetBehavior_Buses_Stations_Route,
+            bottomSheetBehavior_Directions, bottomSheetBehavior_LRT_ClickedStation_Sche;
     FloatingActionButton fabDirections;
     LocationCallback locationCallback;
-    ArrayList<Marker> allLRTMarkers;
-    ArrayList<Marker> allBusMarkers;
-    ArrayList<Marker> allMarkers;
-    ArrayList<Station> allBusStations, allLRTStations, allLRTStations_reversed, allStations;
+    static ArrayList<Marker> allLRTMarkers, allBusMarkers, allMarkers;
+    static ArrayList<Station> allBusStations, allLRTStations, allLRTStations_reversed, allStations;
     private TabAdapter adapter;
     private TabLayout tabLayout;
     private ViewPager viewPager;
@@ -210,13 +198,12 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     TextView clickedBus;
     ImageButton directionsButton, fav_to, fav_from, close_Dir, selectLoc, selectReverse;
     public static final int overview = 0;
-    CardView nearbyCardView;
-    CardView drivingMode, chooseTime, close_routes;
-    ArrayList<Bus> allBuses;
+    static CardView nearbyCardView, lrt_mode, bus_mode, chooseTime, close_routes;
+    static ArrayList<Bus> allBuses;
     int distance = 0;
     GeoFire userGeoFire;
     GeoFire driverGeoFire;
-    public static ArrayList<Polyline> route = new ArrayList<>();
+    public static ArrayList<Polyline> bus_route = new ArrayList<>();
     SharedPreferences preferences;
     LocationRequest locationRequest;
     Marker userMarker;
@@ -227,7 +214,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     FirebaseAuth firebaseAuth;
     public static String uid;
     public static String driverID;
-    public static List<StationFence> stationsFences;
+    static List<StationFence> stationsFences;
     ArrayList<Station> _approaching;
     ArrayList<StationFence> foundfences;
     private LocationManager locationManager;
@@ -248,29 +235,31 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     EditText inputText;
     ProgressDialog progressDialog;
     static FrameLayout computed_layout;
-    public static TinyDB tinyDB;
-    ArrayList<String> instructions = new ArrayList<>();
-    ArrayList<String> alt_instructions = new ArrayList<>();
-    ArrayList<String> Alt1_Summary = new ArrayList<>();
-    ArrayList<String> ins_summary_o;
-    ArrayList<String> ins_summary_d;
+    private TinyDB tinyDB = NavigationActivity.tinyDB;
     ArrayList<String> walking_Origin_instructions;
     ArrayList<String> walking_Dest_instructions;
-    double walking_origin_vals;
-    double walking_dest_vals;
     double bus_int;
     static RecyclerView recyclerView_lrt, recyclerView_alts, recyclerView_full;
     public static Route previous;
+    String role;
+
+    LinearLayout following_route;
+    final static ArrayList<Route> routes = new ArrayList<>();
+    static ArrayList<Object> routes_objects = new ArrayList<>();
+    static FragmentManager fragmentManager;
+    boolean done_or = false;
+    static Marker origin_marker, ori_next_marker, dest_next_marker;
 
     //Class Declarations
     Origin origin = new Origin();
     Destination destination = new Destination();
     UserUpdates userUpdates = new UserUpdates();
     SearchPlace searchPlace = new SearchPlace();
-    static Route direct_bus_route = new Route();
-    Route connect_bus_route = new Route();
-    ALT_connect_BUS_route alt_connect_bus_route = new ALT_connect_BUS_route();
-    Route direct_lrt_route = new Route();
+    Route direct_bus_route = null;
+    Route connect_bus_route = null;
+    Route direct_lrt_route = null;
+    Route intermodal = null;
+    Route intermodal_alt = null;
 
     @Nullable
     @Override
@@ -297,36 +286,31 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        Log.e("created", "full access");
+        following_route = getView().findViewById(R.id.following_route);
         progressDialog = new ProgressDialog(getContext());
         favourites = new ArrayList<Map<String, String>>();
         foundfences = new ArrayList<>();
-        fabDirections = getView().findViewById(R.id.fab_directions);
-        fabDirections.hide();
-        textAddress = getView().findViewById(R.id.textAddress);
-        titleText = getView().findViewById(R.id.titleText);
-        txtClicked_LRT_Station = getView().findViewById(R.id.txtSelectedtation);
+        fabDirections = getView().findViewById(R.id.fab_directions_maps);
+
         timeText = null;
         directionText = null;
         nearbyCardView = getView().findViewById(R.id.nearbystations);
         directionsButton = getView().findViewById(R.id.startDirections);
-        fav_from = getView().findViewById(R.id.fav_from);
-        fav_to = getView().findViewById(R.id.fav_to);
-        drivingMode = getView().findViewById(R.id.drivingMode);
+
         stationDetailsDialog = new Dialog(getContext());
-        onlineRoutingApi = OnlineRoutingApi.create(getContext(), Constants.APIKEY);
-        rlDirections = getView().findViewById(R.id.directions_frag);
         materialSearchBar = getView().findViewById(R.id.searchBar);
         Places.initialize(this.getContext(), Config.MYAPI_KEY);
         placesClient = Places.createClient(getContext());
-        chooseTime = getView().findViewById(R.id.setTime);
-        close_Dir = getView().findViewById(R.id.close_dir);
-        selectLoc = getView().findViewById(R.id.selectLocation);
-        selectReverse = getView().findViewById(R.id.selectReverse);
-        computed_layout = getView().findViewById(R.id.computed_routes_frag);
-        close_routes = getView().findViewById(R.id.close_routes);
-        recyclerView_alts = getView().findViewById(R.id.alt_routes_recycler);
-        recyclerView_lrt = getView().findViewById(R.id.best_route_recycler);
-        recyclerView_full = getView().findViewById(R.id.route_recycler);
+
+        clickedBus = getView().findViewById(R.id.clickedBus);
+        llBottomSheet = getView().findViewById(R.id.bottom_sheet);
+        llNearbySheet = getView().findViewById(R.id.bottom_nearby_sheet);
+        llLRT_StationSheet_Sche = getView().findViewById(R.id.bottom_station_sheet_sche);
+
+        textAddress = llBottomSheet.findViewById(R.id.textAddress);
+        titleText = llBottomSheet.findViewById(R.id.titleText);
+        txtClicked_LRT_Station = llLRT_StationSheet_Sche.findViewById(R.id.txtSelectedtation);
 
         AutocompleteSessionToken sessionToken = AutocompleteSessionToken.newInstance();
 
@@ -395,7 +379,6 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
 
             }
         });
-
         materialSearchBar.setSuggestionsClickListener(new SuggestionsAdapter.OnItemViewClickListener() {
             @Override
             public void OnItemClickListener(int position, View v) {
@@ -456,33 +439,14 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
             }
         });
 
-        selectReverse.setOnClickListener(Buttons);
-        selectLoc.setOnClickListener(Buttons);
-        close_Dir.setOnClickListener(Buttons);
+        fabDirections.setOnClickListener(Buttons);
         directionsButton.setOnClickListener(Buttons);
-        fav_from.setOnClickListener(Buttons);
-        fav_to.setOnClickListener(Buttons);
         nearbyCardView.setOnClickListener(Buttons);
-        drivingMode.setOnClickListener(Buttons);
-        close_routes.setOnClickListener(Buttons);
 
-        ((FloatingActionButton) getView().findViewById(R.id.fab_directions)).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    if (bottomSheetBehavior_Directions.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-                        bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                    } else {
-                        bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_EXPANDED);
-                        gMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
-                    }
-                } catch (Exception e) {
-                }
-            }
-        });
 
-        SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-        String role = pref.getString("role", null);
+
+
+        role = tinyDB.getString("role");
 
         Dexter.withActivity(getActivity())
                 .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -506,13 +470,12 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     }
                 }).check();
 
+
+
         initMarkerSheet();
         initNearByComponent();
         initLRT_StationScheduleSheet();
-        initAutoFrags();
         initClicked_BUS_Component();
-        initFollowRoute_Component();
-        clickedBus = getView().findViewById(R.id.clickedBus);
         HomeFragment_User.update_intervals();
         //supportMapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mainMapFrags);
         //supportMapFragment.getMapAsync(this::onMapReady);
@@ -522,16 +485,19 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     SharedPreferences.OnSharedPreferenceChangeListener listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-            HomeFragment_User.update_favourites();
+
         }
     };
 
     SharedPreferences.OnSharedPreferenceChangeListener listener_db = new SharedPreferences.OnSharedPreferenceChangeListener() {
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-            Log.e("prefs", "changed");
-            HomeFragment_User.update_intervals();
-            HomeFragment_User.update_previous();
+            if (role.equals("User")) {
+                Log.e("prefs", key);
+                HomeFragment_User.update_intervals();
+                if (key.equals("Previous")) HomeFragment_User.update_previous();
+                HomeFragment_User.update_favourites();
+            }
         }
     };
 
@@ -662,7 +628,10 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
 
         });
         allMarkers = new ArrayList<>();
-        LRT_Polyline();
+        role = tinyDB.getString("role");
+        if (role != null)
+            if (role.equals("User"))
+                LRT_Polyline();
         addRailStations();
         addBusStations();
 
@@ -672,60 +641,22 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                 Marker clicked = gMap.addMarker(new MarkerOptions()
                         .position(latLng)
                         .title(latLng.toString()));
+
+                clicked.setTag("P");
             }
         });
 
-        //TODO: MAP CLICK LISTENER
         gMap.setOnMapClickListener(latLng -> {
             removeLRTPoly();
             removeBUSPoly();
             removeDirectionsPoly();
             //hide fabD button and sheet
-            if ((bottomSheetBehavior_Directions.getState() == BottomSheetBehavior.STATE_COLLAPSED)) {
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
-                fabDirections.hide();
-            }
-
-            //collapse D sheet
-            if (bottomSheetBehavior_Directions.getState() == BottomSheetBehavior.STATE_EXPANDED)
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
-
-            if ((bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_COLLAPSED))
-                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-
-            if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_HALF_EXPANDED
-                    || bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_EXPANDED)
-                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_COLLAPSED);
-
-            if (bottomSheetBehavior_Directions.getState() == BottomSheetBehavior.STATE_EXPANDED)
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
-
-            if (bottomSheetBehavior_LRT_ClickedStation_Sche.getState() != BottomSheetBehavior.STATE_HIDDEN) {
-                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                nearbyCardView.setVisibility(View.VISIBLE);
-            }
-
-            if (bottomSheetBehavior_LRT_ClickedStation_Sche.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-                bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
-                nearbyCardView.setVisibility(View.VISIBLE);
-            }
-
-            if (bottomSheetBehavior_Follow_Route.getState() != BottomSheetBehavior.STATE_HIDDEN) {
-                bottomSheetBehavior_Follow_Route.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                nearbyCardView.setVisibility(View.VISIBLE);
-            }
-
-            if (bottomSheetBehavior_Follow_Route.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-                bottomSheetBehavior_Follow_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
-                nearbyCardView.setVisibility(View.VISIBLE);
-            }
-
             if (nearbyCardView.getVisibility() == View.INVISIBLE)
                 nearbyCardView.setVisibility(View.VISIBLE);
 
         });
         if (getPolyline_LRT() != null)
-            getPolyline_LRT().setVisible(false);
+            getPolyline_LRT().setVisible(!getPolyline_LRT().isVisible());
 
         addBuses();
 
@@ -733,6 +664,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         clusterRenderer = new MarkerClusterRenderer<>(getContext(), googleMap, clusterManager);
         setupClusterManager();
         allStations = new ArrayList<>();
+        addAllStations();
     }
 
     private void addClusterItems() {
@@ -782,49 +714,22 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         super.onStop();
     }
 
-    private void initStationsFences() {
-        stationsFences = new ArrayList<>();
-
-        for (Marker this_marker: getAllMarkers()){
-            LatLng statLoc = new LatLng(this_marker.getPosition().latitude, this_marker.getPosition().longitude);
-            String statName = this_marker.getTitle();
-            String type = (String) this_marker.getTag();
-            int distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, statLoc);
-
-            //instantiate the station_bus GeoFence
-            StationFence stationFence = new StationFence(statName, statLoc, type, distance);
-            stationsFences.add(stationFence);
-            /*FirebaseDatabase.getInstance()
-                    .getReference("StationFences")
-                    .child("Stations").child(stationFence.stationName).setValue(stationFence.stationLocation)
-                    .addOnCompleteListener(task -> Toast.makeText(getContext(), "Added!", Toast.LENGTH_SHORT).show())
-                    .addOnFailureListener(e -> Toast.makeText(getContext(), ""+e.getMessage(), Toast.LENGTH_SHORT).show());
-
-            FirebaseDatabase.getInstance()
-                    .getReference("StationFences")
-                    .child("Stations").child(stationFence.stationName).child("type").setValue(stationFence.type)
-                    .addOnCompleteListener(task -> Toast.makeText(getContext(), "Added!", Toast.LENGTH_SHORT).show())
-                    .addOnFailureListener(e -> Toast.makeText(getContext(), ""+e.getMessage(), Toast.LENGTH_SHORT).show());*/
-        }
-        setStationsFences(stationsFences);
-    }
-
     public static List<StationFence> getStationsFences() {
         return stationsFences;
     }
 
-    public void setStationsFences(List<StationFence> stationsFences) {
-        this.stationsFences = stationsFences;
+    public static void setStationsFences(List<StationFence> stationsFences) {
+        Maps_Full_Access.stationsFences = stationsFences;
     }
 
     private void GeoFireConfig() {
         userRef = FirebaseDatabase.getInstance().getReference("User");
-        driverRef = FirebaseDatabase.getInstance().getReference("Driver");
+        driverRef = FirebaseDatabase.getInstance().getReference("tracking");
         userGeoFire = new GeoFire(userRef);
         driverGeoFire = new GeoFire(driverRef);
     }
 
-    public ArrayList<Marker> getAllMarkers() {
+    static ArrayList<Marker> getAllMarkers() {
         ArrayList<Marker> markers = new ArrayList<>();
         for (int i = 0; i < allLRTMarkers.size(); i++) {
             markers.add(allLRTMarkers.get(i));
@@ -835,8 +740,8 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         return markers;
     }
 
-    public void setAllMarkers(ArrayList<Marker> allMarkers) {
-        this.allMarkers = allMarkers;
+    static void setAllMarkers(ArrayList<Marker> allMarkers) {
+        Maps_Full_Access.allMarkers = allMarkers;
     }
 
     private void addMarkersToMap(DirectionsResult results, GoogleMap mMap) {
@@ -886,12 +791,17 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
 
     private void addLRTPolyline(DirectionsResult results, GoogleMap mMap) {
         // Draw a dashed (60px spaced) blue polyline
-        List<PatternItem> dashedPattern = Arrays.asList(new Dash(60), new Gap(60));
-        List<LatLng> decodedPath = PolyUtil.decode(results.routes[overview].overviewPolyline.getEncodedPath());
-        polyline_LRT = mMap.addPolyline(new PolylineOptions().addAll(decodedPath));
-        polyline_LRT.setColor(this.getContext().getResources().getColor(R.color.quantum_googred));
-        polyline_LRT.setPattern(dashedPattern);
-        setPolyline_LRT(polyline_LRT);
+        role = tinyDB.getString("role");
+        if (role != null) {
+            if (role.equals("User")) {
+                List<PatternItem> dashedPattern = Arrays.asList(new Dash(60), new Gap(60));
+                List<LatLng> decodedPath = PolyUtil.decode(results.routes[overview].overviewPolyline.getEncodedPath());
+                polyline_LRT = mMap.addPolyline(new PolylineOptions().addAll(decodedPath));
+                polyline_LRT.setColor(this.getContext().getResources().getColor(R.color.quantum_googred));
+                polyline_LRT.setPattern(dashedPattern);
+                setPolyline_LRT(polyline_LRT);
+            }
+        }
     }
 
     private String getEndLocationTitle(DirectionsResult results) {
@@ -899,17 +809,14 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     }
 
     private DirectionsResult getDirectionsDetails(String origin, String destination, TravelMode mode) {
-        DateTime now = new DateTime();
         try {
             return DirectionsApi.newRequest(getGeoContext())
                     .mode(mode)
                     .origin(origin)
                     .destination(destination)
-                    .departureTime(now)
-                    .alternatives(true)
                     .await();
         } catch (ApiException | IOException | InterruptedException e) {
-            e.printStackTrace();
+            Log.e("Directions", e.getMessage());
             return null;
         }
     }
@@ -934,11 +841,10 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     public GeoApiContext getGeoContext() {
         GeoApiContext geoApiContext = new GeoApiContext();
         return geoApiContext
-                .setQueryRateLimit(3)
                 .setApiKey(Config.MYAPI_KEY)
-                .setConnectTimeout(10, TimeUnit.SECONDS)
-                .setReadTimeout(10, TimeUnit.SECONDS)
-                .setWriteTimeout(10, TimeUnit.SECONDS);
+                .setConnectTimeout(0, TimeUnit.SECONDS)
+                .setReadTimeout(0, TimeUnit.SECONDS)
+                .setWriteTimeout(0, TimeUnit.SECONDS);
     }
 
     //abusing Google's DirectionsAPI for Metro Route
@@ -961,266 +867,29 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         this.bus_int = bus_int;
     }
 
-    public void initAutoFrags() {
-
-        /*
-         * AUTO COMPLETE SEARCH BAR */
-        // Initialize the SDK
-        Places.initialize(this.getContext(), Config.MYAPI_KEY);
-        //Places.initialize(getApplicationContext(), "AIzaSyAYWL_z-TJOBptGAzkXbVB2ZE_NhP27Yx4");
-
-        // Create a new PlacesClient instance
-        PlacesClient placesClient = Places.createClient(this.getContext());
-        //PlacesClient placesClient = Places.createClient(this);
-
-        // Initialize the AutocompleteSupportFragment.
-        AutocompleteSupportFragment autocompleteFragmentDestination = (AutocompleteSupportFragment)
-                getChildFragmentManager().findFragmentById(R.id.autocomplete_destination);
-
-
-        AutocompleteSupportFragment autocompleteFragmentOrigin = (AutocompleteSupportFragment)
-                getChildFragmentManager().findFragmentById(R.id.autocomplete_origin);
-
-        //TODO: autocomplete search customiser
-        autocompleteFragmentDestination.setCountry("MU");
-        autocompleteFragmentDestination.setTypeFilter(TypeFilter.CITIES);
-        autocompleteFragmentOrigin.setCountry("MU");
-        autocompleteFragmentOrigin.setTypeFilter(TypeFilter.CITIES);
-        autocompleteFragmentDestination.setHint("Where are you going?");
-        autocompleteFragmentOrigin.setHint("Where are you starting?");
-        edtText = autocompleteFragmentOrigin.getView().findViewById(R.id.places_autocomplete_search_input);
-        edtText.setTextSize(14.0f);
-        inputText = getView().findViewById(R.id.places_autocomplete_search_input);
-        inputText.setTextSize(14.0f);
-        ImageView ivSearchTo = autocompleteFragmentDestination.getView().findViewById(R.id.places_autocomplete_search_button);
-        ImageView ivSearchFrom = autocompleteFragmentOrigin.getView().findViewById(R.id.places_autocomplete_search_button);
-        ivSearchTo.setBackgroundColor(Color.BLACK);
-        ivSearchTo.setVisibility(View.GONE);
-        ivSearchFrom.setBackgroundColor(Color.BLACK);
-        ivSearchFrom.setVisibility(View.GONE);
-
-
-        // Specify the types of place data to return.
-        autocompleteFragmentDestination.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
-        autocompleteFragmentOrigin.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
-
-        // Set up a PlaceSelectionListener to handle the response.
-        autocompleteFragmentDestination.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-            @Override
-            public void onPlaceSelected(@NotNull Place place) {
-                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-                nearbyCardView.setVisibility(View.INVISIBLE);
-                Location temp = new Location(LocationManager.GPS_PROVIDER);
-                LatLng latLng = place.getLatLng();
-                temp.setLatitude(latLng.latitude);
-                temp.setLongitude(latLng.longitude);
-                String user_Destination = temp.getLatitude() + "," + temp.getLongitude();
-                destination.setDestination(user_Destination);
-                destination.setAddress(place.getAddress());
-                destination.setName(place.getName());
-                destination.setPosition(latLng);
-                Marker destination;
-
-                destination = gMap.addMarker(new MarkerOptions()
-                        .position(place.getLatLng())
-                        .title(place.getName())
-                );
-                destination.setTag("D");
-            }
-
-            @Override
-            public void onError(@NotNull Status status) {
-                // TODO: Handle the error.
-                Log.i("error", "An error occurred: " + status);
-            }
-        });
-
-        autocompleteFragmentOrigin.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-            @Override
-            public void onPlaceSelected(@NotNull Place place) {
-                bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-                Location temp = new Location(LocationManager.GPS_PROVIDER);
-                LatLng latLng = place.getLatLng();
-                temp.setLatitude(latLng.latitude);
-                temp.setLongitude(latLng.longitude);
-                String user_origin = temp.getLatitude() + "," + temp.getLongitude();
-                origin.setPosition(latLng);
-                origin.setOrigin(user_origin);
-                origin.setName(place.getName());
-                origin.setAddress(place.getAddress());
-
-                Marker origin;
-
-                origin = gMap.addMarker(new MarkerOptions()
-                        .position(place.getLatLng())
-                        .title(place.getName())
-                );
-                origin.setTag("O");
-            }
-
-            @Override
-            public void onError(@NotNull Status status) {
-                // TODO: Handle the error.
-                Log.i("TAG", "An error occurred: " + status);
-            }
-        });
-    }
-
-    @SuppressLint("NewApi")
-    private void favourite_to () {
-        favourite = new HashSet<String>();
-        favourite.add(destination.getName() + " ");
-        favourite.add(destination.getDestination());
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putStringSet("first", favourite);
-        editor.commit();
-    }
-
-    @SuppressLint("NewApi")
-    private void favourite_from () {
-        favourite = new HashSet<String>();
-        favourite.add(origin.getName() + " ");
-        favourite.add(origin.getOrigin());
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putStringSet("second", favourite);
-        editor.commit();
-    }
-
     //event listener for buttons
     android.view.View.OnClickListener Buttons = new View.OnClickListener() {
         @SuppressLint("NewApi")
         @Override
         public void onClick(android.view.View v) {
             switch (v.getId()) {
-                case R.id.fav_to:
-                    favourite_to();
-                    break;
-                case R.id.fav_from:
-                    favourite_from();
+                case R.id.fab_directions:
+                    NearMeHolder.maps_flipper.showNext();
                     break;
                 case R.id.startDirections:
-                    tinyDB.putDouble("direct", 5.5);
-                    rlDirections.setVisibility(View.VISIBLE);
-                    break;
-                case R.id.close_dir:
-                    rlDirections.setVisibility(View.GONE);
+                    NearMeHolder.maps_flipper.showNext();
                     break;
                 case R.id.nearbystations:
+                    bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_EXPANDED);
                     ShowNearestStations();
-                    hideAllSheets();
-                    break;
-                case R.id.drivingMode:
-                    //doDrivingInstructions();
-                    checkParams();
-                    break;
-                case R.id.selectLocation:
-                    selectLoc();
-                    break;
-                case R.id.selectReverse:
-                    selectReverse();
-                    break;
-                case R.id.close_routes:
-                    computed_layout.setVisibility(View.INVISIBLE);
                     break;
             }
         }
     };
 
-    private void selectLoc () {
-        String userOrigin = userUpdates.getLatLngLocation().latitude + "," + userUpdates.getLatLngLocation().longitude;
-        Location orig = userUpdates.getLocation();
-        edtText.setText("My Location");
-        origin.setOrigin(userOrigin);
-    }
-
-    private void selectReverse () {
-        String oradd = origin.getAddress();
-        LatLng orpos = origin.getPosition();
-        String orname = origin.getName();
-        String or = origin.getOrigin();
-        String desadd = destination.getAddress();
-        String desname = destination.getName();
-        String des = destination.getDestination();
-        LatLng despos = destination.getPosition();
-
-        origin.setOrigin(des);
-        origin.setName(desname);
-        origin.setPosition(despos);
-        origin.setAddress(desadd);
-        destination.setDestination(or);
-        destination.setPosition(orpos);
-        destination.setAddress(oradd);
-        destination.setName(orname);
-
-        edtText.setText(desname);
-        inputText.setText(orname);
-    }
-
-    private void hideAllSheets () {
-        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_HIDDEN)
-            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_EXPANDED)
-            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_COLLAPSED);
-        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_COLLAPSED)
-            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-        if (rlDirections.getVisibility() == View.VISIBLE) {
-            nearbyCardView.setVisibility(View.INVISIBLE);
-            rlDirections.setVisibility(View.GONE);
-        }
-    }
-
-    @SuppressLint("NewApi")
-    private void doDrivingInstructions () {
-        DirectionsResult results = getDirectionsDetails(origin.getOrigin(), destination.getDestination(), TravelMode.WALKING);
-        if (results != null) {
-            int num = results.routes[0].legs[0].steps.length;
-            ArrayList<String> instructions = new ArrayList<>();
-            try {
-                for (int i = 0; i < num; i++) {
-                    String get = results.routes[0].legs[0].steps[i].htmlInstructions;
-                    String instruction = String.valueOf(Html.fromHtml(get, Html.FROM_HTML_MODE_COMPACT));
-                    instructions.add(instruction);
-                }
-                //ShowFollowRoute(instructions);
-                addWalkToBusPolyline(results, gMap);
-                positionCamera(results.routes[overview], gMap);
-            }
-            catch (Exception e) {
-                Log.e("error here", e.getMessage());
-            }
-            addPolyline(results, gMap);
-            positionCamera(results.routes[overview], gMap);
-            walkToStation();
-            addMarkersToMap(results, gMap);
-            bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
-            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-            nearbyCardView.setVisibility(View.INVISIBLE);
-            bottomSheetBehavior_Follow_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-            rlDirections.setVisibility(View.INVISIBLE);
-        }
-        ArrayList<Station> stations_to_dest = new ArrayList<>();
-
-        for (Station station: allLRTStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(station.getPosition(), destination.getPosition());
-            if (distance < 1000) {
-                stations_to_dest.add(station);
-                Log.e("Station lrt:", station.name);
-            }
-        }
-
-        for (Station station: allBusStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(station.getPosition(), destination.getPosition());
-            if (distance < 1000) {
-                //14min = 1km
-                stations_to_dest.add(station);
-                Log.e("Station bus:", station.name);
-            }
-        }
-    }
-
     private void initMarkerSheet () {
         // get the bottom sheet view
-        llBottomSheet = (LinearLayout) getView().findViewById(R.id.bottom_sheet);
+        llBottomSheet = getView().findViewById(R.id.bottom_sheet);
 
         // init the bottom sheet behavior
         bottomSheetBehavior_Directions = BottomSheetBehavior.from(llBottomSheet);
@@ -1241,6 +910,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                     case BottomSheetBehavior.STATE_COLLAPSED:
                     case BottomSheetBehavior.STATE_EXPANDED:
                         nearbyCardView.setVisibility(View.INVISIBLE);
+                        fabDirections.show();
                         break;
                 }
             }
@@ -1285,8 +955,8 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         title.setText(searchPlace.getName());
         address.setText(searchPlace.getAddress());
         phone.setText(searchPlace.getPhone());
-        if (userUpdates.getLatLngLocation() != null) {
-            int dist = (int) SphericalUtil.computeDistanceBetween(userUpdates.getLatLngLocation(), searchPlace.getPosition());
+        if (curLocationLatLng != null) {
+            int dist = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, searchPlace.getPosition());
             distance.setText(dist + " metres away");
         }
         else
@@ -1398,71 +1068,19 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
 
     }
 
-    private void initFollowRoute_Component() {
-        // get the bottom sheet view
-        llFollow_Route = getView().findViewById(R.id.follow_route);
-
-        // init the bottom sheet behavior
-        bottomSheetBehavior_Follow_Route = BottomSheetBehavior.from(llFollow_Route);
-
-        // change the state of the bottom sheet
-        bottomSheetBehavior_Follow_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
-
-        // set callback for changes
-        bottomSheetBehavior_Follow_Route.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                switch (newState) {
-                    case BottomSheetBehavior.STATE_HIDDEN:
-                        nearbyCardView.setVisibility(View.VISIBLE);
-                        break;
-                    case BottomSheetBehavior.STATE_HALF_EXPANDED:
-                    case BottomSheetBehavior.STATE_COLLAPSED:
-                        nearbyCardView.setVisibility(View.INVISIBLE);
-                    case BottomSheetBehavior.STATE_EXPANDED:
-                        nearbyCardView.setVisibility(View.INVISIBLE);
-                        break;
-                }
-            }
-
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                float h = bottomSheet.getHeight();
-                float off = h * slideOffset;
-
-                switch (bottomSheetBehavior_Follow_Route.getState()) {
-                    case BottomSheetBehavior.STATE_DRAGGING:
-                        setMapPadding(off);
-                        break;
-                    case BottomSheetBehavior.STATE_SETTLING:
-                        break;
-                    //reposition marker at the center
-                    case BottomSheetBehavior.STATE_HIDDEN:
-                        break;
-                    case BottomSheetBehavior.STATE_EXPANDED:
-
-                        break;
-                    case BottomSheetBehavior.STATE_COLLAPSED:
-
-                        break;
-                }
-            }
-        });
-
-    }
-
     private void initLRT_StationScheduleSheet() {
-        //get the view pager and add fragments to it at runtime
-        viewPager = getView().findViewById(R.id.viewpager);
-        tabLayout = getView().findViewById(R.id.tabLayout);
+        // get the bottom sheet view
+        llLRT_StationSheet_Sche = getView().findViewById(R.id.bottom_station_sheet_sche);
 
         adapter = new TabAdapter(getChildFragmentManager());
         adapter.addFragment(new ToPortLouisFragment(), "To Port Louis");
         adapter.addFragment(new ToRoseHillFragment(), "To Rose Hill");
+        //get the view pager and add fragments to it at runtime
+        viewPager = llLRT_StationSheet_Sche.findViewById(R.id.viewpager);
+        tabLayout = llLRT_StationSheet_Sche.findViewById(R.id.tabLayout);
         viewPager.setAdapter(adapter);
         tabLayout.setupWithViewPager(viewPager);
-        // get the bottom sheet view
-        llLRT_StationSheet_Sche = getView().findViewById(R.id.bottom_station_sheet_sche);
+
 
         // init the bottom sheet behavior
         bottomSheetBehavior_LRT_ClickedStation_Sche = BottomSheetBehavior.from(llLRT_StationSheet_Sche);
@@ -1532,15 +1150,20 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     @SuppressLint("NewApi")
     private void ShowNearestStations() {
         allBuses = addBuses();
-        TableLayout mainTable_stations = getView().findViewById(R.id.mainTable_stations);
-        TableLayout mainTable_buses = getView().findViewById(R.id.mainTable_buses);
 
-        if (mainTable_stations != null) mainTable_stations.removeAllViews();
-        if (mainTable_buses != null) mainTable_buses.removeAllViews();
+        TableLayout mainTable_LRT_stations = getView().findViewById(R.id.mainTable_stations);
+        TableLayout mainTable_BUS_stations = getView().findViewById(R.id.mainTable_buses);
+
+
+        if (mainTable_LRT_stations != null) mainTable_LRT_stations.removeAllViews();
+        if (mainTable_BUS_stations != null) mainTable_BUS_stations.removeAllViews();
+
 
         //nearest stations
-        ArrayList<Station> nearbyStations = new ArrayList<>();
+        ArrayList<Station> nearbyStations_lrt = new ArrayList<>();
+        ArrayList<Station> nearbyStations_bus = new ArrayList<>();
         int distance = 0;
+        int max = Integer.MAX_VALUE;
 
         for (int i = 0; i < allLRTMarkers.size(); i++) {
             Marker LRTmarker = allLRTMarkers.get(i);
@@ -1557,8 +1180,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
             LRTstation.distance = distance;
             LRTstation.position = LRTmarker.getPosition();
             LRTstation.type = "LRT";
-            if (distance <= 1000)
-                nearbyStations.add(LRTstation);
+            nearbyStations_lrt.add(LRTstation);
         }
         for (int y = 0; y < allBusMarkers.size(); y++) {
             Marker BUSmarker = allBusMarkers.get(y);
@@ -1576,22 +1198,22 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
             BUSstation.distance = distance;
             BUSstation.position = BUSmarker.getPosition();
             BUSstation.type = "BUS";
-            if (distance <= 1000)
-                nearbyStations.add(BUSstation);
+            nearbyStations_bus.add(BUSstation);
         }
 
         setAllMarkers(allMarkers);
         //sort by closest distance
-        Collections.sort(nearbyStations, new SortByDistance());
+        Collections.sort(nearbyStations_lrt, new SortByDistance());
+        Collections.sort(nearbyStations_bus, new SortByDistance());
         int green = getResources().getColor(R.color.quantum_googgreen);
-        //inflate each LRT station_bus to view
-        for (int x = 0; x < nearbyStations.size(); x++) {
-            Station station = nearbyStations.get(x);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
+        //inflate each LRT station_bus to view
+        for (Station station: nearbyStations_lrt) {
             LayoutInflater inflater = Maps_Full_Access.this.getLayoutInflater();
             TableRow mainRow = new TableRow(Maps_Full_Access.this.getContext());
+            mainRow.setOrientation(LinearLayout.VERTICAL);
 
-            if (station.type.equals(Config.STATION_TYPE_LRT)) {
                 inflater.inflate(R.layout.lrt_row_to_inflate, mainRow);
 
                 stopText = new TextView(mainRow.getContext());
@@ -1600,56 +1222,45 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                 //user distance from stops CLOSEST-TO-FARTHEST
                 //TODO: SHOW DISTANCE IN MINUTES ACCORDING TO CURRENT VEHICLE/TRANSPORT/SPEED
                 stopDistanceText.setText("\tless than: " + station.distance + "m away");
+                stopDistanceText.setTextAppearance(R.style.ride_stop_style);
                 stopDistanceText.setTextColor(green);
+                //stopDistanceText.setLayoutParams(params);
 
                 stopText.setText(station.name);
-                stopText.setTextAppearance(R.style.station_text);
+                stopText.setTextAppearance(R.style.stat_text_style);
+                //stopText.setLayoutParams(params);
                 stopText.setPadding(0, 40, 0, 0);
 
                 mainRow.addView(stopText);
                 mainRow.addView(stopDistanceText);
                 //onclick listener for each row
                 mainRow.setOnClickListener(v -> ClickedNearbyStation(station.name));
-                if (mainTable_stations != null) mainTable_stations.addView(mainRow);
-            }
-            else if (station.type.equals(Config.STATION_TYPE_BUS)) {
+                if (mainTable_LRT_stations != null) mainTable_LRT_stations.addView(mainRow);
+        }
+        for (Station station: nearbyStations_bus) {
+            LayoutInflater inflater = Maps_Full_Access.this.getLayoutInflater();
+            TableRow mainRow = new TableRow(Maps_Full_Access.this.getContext());
+            mainRow.setOrientation(LinearLayout.VERTICAL);
                 inflater.inflate(R.layout.bus_row_to_inflate, mainRow);
 
                 stopText = new TextView(mainRow.getContext());
                 stopDistanceText = new TextView(mainRow.getContext());
-                busText = new TextView(mainRow.getContext());
 
                 //user distance from stops CLOSEST-TO-FARTHEST
                 //TODO: SHOW DISTANCE IN MINUTES ACCORDING TO CURRENT VEHICLE/TRANSPORT/SPEED
                 stopDistanceText.setText("\tless than: " + station.distance + "m away");
+                stopDistanceText.setTextAppearance(R.style.ride_stop_style);
                 stopDistanceText.setTextColor(green);
 
                 stopText.setText(station.name);
-                stopText.setTextAppearance(R.style.station_text);
+                stopText.setTextAppearance(R.style.stat_text_style);
                 stopText.setPadding(0, 40, 0, 0);
 
-                //TODO: ADD BUS STATIONS # ON EACH ROW
-                /*for (int i = 0; i < allBuses.size(); i++) {
-                    Bus bus = allBuses.get(i);
-                    ArrayList<Station> stations = bus.getStops();
-
-                    for (int j = 0; j < stations.size(); j++) {
-                        Station station1 = stations.get(j);
-
-                        if (station1.getName().equals(station_bus.getName())) {
-                            busText.setText(String.valueOf(bus.getName()));
-                        }
-                    }
-                }*/
-
                 mainRow.addView(stopText);
-                mainRow.addView(busText);
                 mainRow.addView(stopDistanceText);
-
                 //onclick listener for each row
                 mainRow.setOnClickListener(v -> ClickedNearbyStation(station.name));
-                if (mainTable_buses != null) mainTable_buses.addView(mainRow);
-            }
+                if (mainTable_BUS_stations != null) mainTable_BUS_stations.addView(mainRow);
         }
     }
 
@@ -1659,7 +1270,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                 titleText.setText(marker.getTitle());
                 textAddress.setText(marker.getPosition().toString());
                 //show it as collapsed
-                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_EXPANDED);
                 //hide all the other bottom sheets
                 bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
                 bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HIDDEN);
@@ -1712,6 +1323,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
             }
             else if (marker.getTag().equals("D")) marker.showInfoWindow();
             else if (marker.getTag().equals("O")) marker.showInfoWindow();
+            else if (marker.getTag().equals("M")) marker.showInfoWindow();
 
         } catch (Exception e) {
         }
@@ -1724,8 +1336,11 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
             stationDetailsDialog.setContentView(R.layout.dialog_clicked_station);
             txtClicked_BUS_Station = stationDetailsDialog.findViewById(R.id.txtBusStation_clicked);
             txtClicked_BUS_Station.setText(marker.getTitle());
+            String occupancy = occupancy(marker.getTitle());
             stationDetailsDialog.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
             ImageButton closeDialog = stationDetailsDialog.findViewById(R.id.dialog_closeX);
+            TextView tv = stationDetailsDialog.findViewById(R.id.stat_occupancy);
+            tv.setText(occupancy);
             occupancy_anim = stationDetailsDialog.findViewById(R.id.occupancy_anim);
             Extract_BUS_Data(marker);
             TableLayout buses = stationDetailsDialog.findViewById(R.id.buses_at_station_clicked);
@@ -1745,6 +1360,22 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         //TableLayout buses = getView().findViewById(R.id.buses_at_station);
     }
 
+    static String occupancy (String station_name) {
+        for (Station station: allStations) {
+            if (station.name.equals(station_name))
+                if (station.occupancy != 0)
+                    if (station.occupancy >= 30)
+                        return "Very Busy";
+                    else if (station.occupancy >= 20)
+                        return "Relatively Busy";
+                    else if (station.occupancy >= 10)
+                        return "Normal";
+                    else
+                        return  "Vacant";
+        }
+        return "N";
+    }
+
     @SuppressLint("NewApi")
     private void animateView (ImageView imageView, boolean animate) {
         AnimatedVectorDrawable d = (AnimatedVectorDrawable) getResources().getDrawable(R.drawable.live_anim);
@@ -1761,13 +1392,87 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     //show the stations for a bus route
     @SuppressLint("NewApi")
     private void ShowRouteStations(Bus bus) {
+        boolean tracking = false;
+        bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
+        stationDetailsDialog.dismiss();
+        bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
         TableLayout mainTable_stations = getView().findViewById(R.id.mainTable_Route);
         mainTable_stations.removeAllViews();
-        clickedBus.setText(String.valueOf(bus.getName()));
+        TextView clicked = llBus_Stations_Route.findViewById(R.id.clickedBus);
+        clicked.setText(String.valueOf(bus.getName()));
         //nearest stations
         ArrayList<Station> this_buses_stops = bus.getStops();
         ArrayList<Station> nearbyStations = new ArrayList<>();
         int distance = 0;
+
+        ImageView iv = (ImageView) getView().findViewById(R.id.track_bus);
+        ImageView iv_stop = (ImageView) getView().findViewById(R.id.stop_track_bus);
+
+
+        iv_stop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                iv_stop.setVisibility(View.GONE);
+                iv.setVisibility(View.VISIBLE);
+                bus_location.remove();
+                DatabaseReference mDatabase;
+                mDatabase = FirebaseDatabase.getInstance().
+                        getReference("tracking")
+                        .child("BUS")
+                        .child(String.valueOf(bus.getName()));
+                mDatabase.removeEventListener(busListener);
+            }
+        });
+
+        iv_stop.setVisibility(View.GONE);
+        start_pulse(iv);
+
+        iv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                iv_stop.setVisibility(View.VISIBLE);
+                iv.setVisibility(View.GONE);
+                start_pulse(iv_stop);
+                DatabaseReference mDatabase = FirebaseDatabase.getInstance().
+                        getReference("tracking")
+                        .child("BUS")
+                        .child(String.valueOf(bus.getName()));
+                busListener = new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        // Get Bus object and use the values to update the UI
+                        //
+                        Bus_Tracker bus_tracked = dataSnapshot.getValue(Bus_Tracker.class);
+                        Log.e("TRACKING", bus_tracked.name);
+                        Log.e("BUS MOVED! NOW AT", bus_tracked.position.toString() + "");
+
+                        //custom marker size
+                        int height = 135;
+                        int width = 100;
+                        Bitmap b = BitmapFactory.decodeResource(getResources(), R.drawable.bus_pin_inflate);
+                        Bitmap smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
+                        BitmapDescriptor smallMarkerIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
+                        if (bus_location != null)
+                            bus_location.remove();
+                        bus_location = gMap.addMarker(
+                                new MarkerOptions()
+                                        .icon(smallMarkerIcon)
+                                        .position(new LatLng(bus_tracked.position.getLatitude(), bus_tracked.position.getLongitude()))
+                                        .snippet(bus_tracked.name)
+                        );
+                        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(bus_location.getPosition(), 18.5f));
+                        gMap.animateCamera(CameraUpdateFactory.zoomTo(18.5f), 2000, null);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        // Getting Post failed, log a message
+                        Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
+                    }
+                };
+                mDatabase.addValueEventListener(busListener);
+            }
+        });
 
         for (int y = 0; y < this_buses_stops.size(); y++) {
             Station station = this_buses_stops.get(y);
@@ -1806,7 +1511,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
                 //stopDistanceText.setText("~" + station_bus.distance + "m away");
 
                 stopText.setText(station.name);
-                stopText.setTextAppearance(R.style.station_text);
+                stopText.setTextAppearance(R.style.stat_text_style);
                 stopText.setPadding(5, 40, 0, 0);
 
                 mainRow.addView(stopText);
@@ -1824,31 +1529,61 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         }
     }
 
+    @SuppressLint("NewApi")
+    private void start_pulse (ImageView iv) {
+         ObjectAnimator scaleDown = ObjectAnimator.ofPropertyValuesHolder(
+                iv,
+                PropertyValuesHolder.ofFloat("scaleX", 1.2f),
+                PropertyValuesHolder.ofFloat("scaleY", 1.2f));
+        scaleDown.setDuration(310);
+
+        scaleDown.setRepeatCount(5);
+        scaleDown.setRepeatMode(ObjectAnimator.REVERSE);
+
+        scaleDown.start();
+    }
+
+    static void hide_all_except (View dont_hide, ViewGroup root) {
+        for (int i = 0 ; i < root.getChildCount(); i++){
+            View view = root.getChildAt(i);
+            if (view.getId() == dont_hide.getId()) {
+                dont_hide.setVisibility(View.VISIBLE);
+            }
+            else {
+                view.setVisibility(View.INVISIBLE);
+            }
+        }
+        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_HIDDEN)
+            nearbyCardView.setVisibility(View.VISIBLE);
+        if (llNearbySheet.getVisibility() == View.INVISIBLE)
+            nearbyCardView.setVisibility(View.VISIBLE);
+        if (bottomSheetBehavior_NearBy.getState() == BottomSheetBehavior.STATE_EXPANDED)
+            nearbyCardView.setVisibility(View.INVISIBLE);
+    }
+
     public void removeLRTPoly() {
         if (getPolyline_LRT() != null) {
-            if (getPolyline_LRT().isVisible() == true) {
-                getPolyline_LRT().setVisible(false);
-            }
+            getPolyline_LRT().setVisible(!getPolyline_LRT().isVisible());
         }
     }
 
     public void removeBUSPoly() {
         //remove whole bus POLYLINE
-        if (route != null) {
-            for (Polyline line : route) {
+        if (bus_route != null) {
+            for (Polyline line : bus_route) {
                 line.remove();
             }
-            route.clear();
+            bus_route.clear();
         }
     }
 
     public void removeDirectionsPoly() {
         //remove whole bus POLYLINE
-        if (route != null) {
-            for (Polyline line : route) {
+        if (bus_route != null) {
+            for (Polyline line : bus_route) {
                 line.remove();
             }
-            route.clear();
+            bus_route.clear();
         }
     }
 
@@ -2044,13 +1779,10 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
 
                         if (clickedBus.equals(String.valueOf(thisBus.getName()))) {
                             //remove previous line before showing new one
-                            if (route != null)
+                            if (bus_route != null)
                                 removeBUSPoly();
-                            bottomSheetBehavior_LRT_ClickedStation_Sche.setState(BottomSheetBehavior.STATE_HIDDEN);
                             ShowRouteStations(thisBus);
-                            new Bus().busRoute(thisBus);
-                            stationDetailsDialog.dismiss();
-                            bottomSheetBehavior_Buses_Stations_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+                            new Bus().busRoute(thisBus, gMap, bus_route);
                         }
                     }
                 });
@@ -2195,7 +1927,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     }
 
     //TODO: CHANGE IMPLEMENTATION OF LRT STATIONS
-    private ArrayList<Station> setLrtStations () {
+    static ArrayList<Station> setLrtStations () {
         ArrayList<Station> stations = new ArrayList<>();
         allLRTStations_reversed = new ArrayList<>();
         stations.add(new RoseHill().addStation());
@@ -2233,7 +1965,6 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         Bitmap b = BitmapFactory.decodeResource(getResources(), R.drawable.bus_pin_new);
         Bitmap smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
         BitmapDescriptor smallMarkerIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
-
         for (int i = 0; i < setBusStations().size(); i++) {
             Station station = setBusStations().get(i);
             //get LatLng for each marker in ArrayList
@@ -2249,7 +1980,42 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         }
     }
 
-    private ArrayList<Station> setBusStations () {
+    private void addalllists () {
+        allBusMarkers = new ArrayList<>();
+        allBusStations = new ArrayList<>();
+
+        for (int i = 0; i < setBusStations().size(); i++) {
+            Station station = setBusStations().get(i);
+            //get LatLng for each marker in ArrayList
+            allBusStations.add(station);
+        }
+
+        allLRTMarkers = new ArrayList<>();
+        allLRTStations = new ArrayList<>();
+
+        for (int i = 0; i < setLrtStations().size(); i++) {
+            Station station = setLrtStations().get(i);
+            if (station != null) {
+                allLRTStations.add(station);
+            } else
+                Log.e("its", null);
+        }
+    }
+
+    static void hideAll () {
+        for (Marker marker: allMarkers) {
+            marker.setVisible(!marker.isVisible());
+        }
+    }
+
+    GoogleMap.OnGroundOverlayClickListener listener_g = new GoogleMap.OnGroundOverlayClickListener() {
+        @Override
+        public void onGroundOverlayClick(@NonNull GroundOverlay groundOverlay) {
+            Log.e("position", groundOverlay.getPosition() + "");
+        }
+    };
+
+    static ArrayList<Station> setBusStations () {
         ArrayList<Station> stations = new ArrayList<>();
         stations.add(new Reduit().addStation());
         stations.add(new Kennedy().addStation());
@@ -2276,374 +2042,50 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
         return allBuses;
     }
 
-    @SuppressLint("NewApi")
-    private void walkToStation () {
-//        if (userUpdates.location != null) {
-//            Station station_bus = userUpdates.getNearest_station();
-//            curLocationLatLng = new LatLng(userUpdates.location.getLatitude(), userUpdates.location.getLongitude());
-//            distance = (int) SphericalUtil.computeDistanceBetween(curLocationLatLng, station_bus.getPosition());
-//
-//            if (distance < 50) {
-//
-//                if (station_bus.type.equals("BUS")) {
-//                    String origin = UserUpdates.location.getLatitude() + "," + UserUpdates.location.getLongitude();
-//                    String destination = station_bus.position.latitude + "," + station_bus.position.longitude;
-//
-//                    DirectionsResult results = getWalkingDetails(origin, destination, TravelMode.WALKING);
-//                }
-//            }
-//        }
-    }
-
-    @Override
-    public void onDataEntered(DataSnapshot dataSnapshot, GeoLocation location) {
-        //sendNotif("LRTMate App", String.format("%s entered the station_bus.", dataSnapshot.getKey()));
-        Log.e("entered", dataSnapshot.getKey());
-        LatLng loc = new LatLng(location.latitude, location.longitude);
-        if (location != null) {
-            if (!loc.equals(userUpdates.getLatLngLocation())) {
-                Log.e("entered new", dataSnapshot.getKey());
-                entered_new_Station(location);
-            } else {
-                Log.e("entered", "same");
-                entered_same_Station(location);
-            }
-        }
-    }
-
-    @Override
-    public void onDataExited(DataSnapshot dataSnapshot) {
-        Log.e("exited", dataSnapshot.getKey());
-        //sendNotif("LRTMate App", String.format("%s left the station_bus.", dataSnapshot.getKey()));
-        exited_Station();
-    }
-
-    @Override
-    public void onDataMoved(DataSnapshot dataSnapshot, GeoLocation location) {
-        Log.e("moving", dataSnapshot.getKey());
-        //sendNotif("LRTMate App", String.format("%s is moving around the station_bus.", dataSnapshot.getKey()));
-    }
-
-    private void sendNotification(String title, String message) {
-        String NOTIFICATION_CHANNEL_ID = App.CHANNEL_ID;
-        NotificationManager manager = (NotificationManager) this.getActivity().getSystemService(Context.NOTIFICATION_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            NotificationChannel channel = new NotificationChannel(
-                    NOTIFICATION_CHANNEL_ID,
-                    "Notifs",
-                    NotificationManager.IMPORTANCE_DEFAULT);
-
-            channel.setDescription("Desccription");
-            channel.setLightColor(Color.BLUE);
-            channel.enableLights(true);
-            channel.setVibrationPattern(new long[] {0, 1000, 500, 1000});
-            channel.enableVibration(true);
-            manager.createNotificationChannel(channel);
-        }
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), NOTIFICATION_CHANNEL_ID);
-        builder.setContentTitle(title)
-                .setContentText(message)
-                .setAutoCancel(false)
-                .setSmallIcon(R.drawable.track_location)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_top_track_location));
-
-        Notification notification = builder.build();
-        manager.notify(new Random().nextInt(), notification);
-    }
-
-    private void exited_Station () {
-        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-        CollectionReference reference = firebaseFirestore.collection("stationdetails");
-
-        //decrementCounter(reference, userUpdates.getPrevious_stat().name);
-        Log.e("user left", UserUpdates.nearest_station.name);
-    }
-
-    //pinpoint the user when entering a trigger
-    private boolean entered_new_Station(GeoLocation location) {
-        _approaching = new ArrayList<>();
-        boolean found = true;
-        LatLng user = new LatLng(location.latitude, location.longitude);
-        Station station = new Station();
-        String newStation = null;
-        int nearest_station = 0;
-        int dist_to = 0;
-
-        if (!user.equals(curLocationLatLng)) {
-            //HomeFragment_User.init.setText("Location Changed. Refreshing UI...");
-        }
-
-        for (StationFence stationFence : getStationsFences()) {
-            //Log.e("stat", stationFence.stationName);
-            //Log.e("dist", String.valueOf(stationFence.distance));
-            //nearest_station = (int) SphericalUtil.computeDistanceBetween(user, stationFence.stationLocation);
-            //Log.e("far", String.valueOf(nearest_station));
-            //Log.e("name", String.valueOf(stationFence.stationName));
-            //if user becomes <30m away from a station_bus
-            if (stationFence.distance <= Config.ALLOWED_PROXIMITY) {
-                dist_to = nearest_station;
-                if (!foundfences.contains(stationFence)) {
-                    foundfences.add(stationFence);
-                }
-
-                if ((stationFence.distance > Config.ACCURACY_DISTANCE)) {
-                    //Log.e("entered", "poss");
-                    //if they are close enough <50m
-                    station.name = (stationFence.stationName);
-                    station.type = (stationFence.type);
-                    station.position = (stationFence.stationLocation);
-                    station.distance = (nearest_station);
-                    userUpdates.setNearest_station(station);
-                    userUpdates.setDistance_to_nearest_station(stationFence.distance);
-                    //Log.e("set poss", "station_bus");
-
-                    newStation = station.name;
-                    FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                    CollectionReference reference = firebaseFirestore.collection("stationdetails");
-                    //incrementCounter(reference, newStation);
-                    //Log.e("poss dist to", station_bus.name + " " + dist_to);
-                    found = false;
-                    return found;
-                }
-                //if user becomes <25m away from a station_bus
-                else if (stationFence.distance <= Config.ACCURACY_DISTANCE) {
-                    //Log.e("entered", "closer");
-
-                    station.name = (stationFence.stationName);
-                    station.type = (stationFence.type);
-                    station.position = (stationFence.stationLocation);
-                    station.distance = (stationFence.distance);
-                    userUpdates.setNearest_station(station);
-                    userUpdates.setDistance_to_nearest_station(stationFence.distance);
-                    newStation = stationFence.stationName;
-                    Log.e("set", newStation);
-
-
-                    FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                    CollectionReference reference = firebaseFirestore.collection("stationdetails");
-                    incrementCounter(reference, newStation);
-                    Log.e("accu dist to", userUpdates.getNearest_station().name + " " + userUpdates.getDistance_to_nearest_station());
-                    found = false;
-                    return found;
-                }
-            }
-        }
-        return found;
-    }
-
-    private void entered_same_Station (GeoLocation location) {
-        LatLng user = new LatLng(location.latitude, location.longitude);
-        boolean found = false;
-        Station station = new Station();
-        String newStation = null;
-        int nearest_station = 0;
-        int dist_to = 0;
-
-        if (!user.equals(curLocationLatLng)) {
-            HomeFragment_User.init.setText("Location Changed. Refreshing UI...");
-        }
-
-        while (found == false) {
-            for (StationFence stationFence : getStationsFences()) {
-                //Log.e("stat", stationFence.stationName);
-                //Log.e("dist", String.valueOf(stationFence.distance));
-                //nearest_station = (int) SphericalUtil.computeDistanceBetween(user, stationFence.stationLocation);
-                //Log.e("far", String.valueOf(nearest_station));
-                //Log.e("name", String.valueOf(stationFence.stationName));
-                //if user becomes <30m away from a station_bus
-                if (stationFence.distance <= Config.ALLOWED_PROXIMITY) {
-                    if (!foundfences.contains(stationFence)) {
-                        foundfences.add(stationFence);
-                    }
-
-                    if ((stationFence.distance > Config.ACCURACY_DISTANCE)) {
-                        //Log.e("entered", "poss");
-                        //if they are close enough <50m
-                        station.name = (stationFence.stationName);
-                        station.type = (stationFence.type);
-                        station.position = (stationFence.stationLocation);
-                        station.distance = (nearest_station);
-                        userUpdates.setNearest_station(station);
-                        userUpdates.setDistance_to_nearest_station(stationFence.distance);
-                        UserUpdates.distance_to_nearest_station = stationFence.distance;
-                        //Log.e("set poss", "station_bus");
-
-                        newStation = station.name;
-                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                        CollectionReference reference = firebaseFirestore.collection("stationdetails");
-                        //incrementCounter(reference, newStation);
-                        //Log.e("poss dist to", station_bus.name + " " + dist_to);
-                        found = true;
-                        break;
-                    }
-                    //if user becomes <25m away from a station_bus
-                    else if (stationFence.distance <= Config.ACCURACY_DISTANCE) {
-                        //Log.e("entered", "closer");
-
-                        station.name = (stationFence.stationName);
-                        station.type = (stationFence.type);
-                        station.position = (stationFence.stationLocation);
-                        station.distance = (stationFence.distance);
-                        userUpdates.setNearest_station(station);
-                        userUpdates.setDistance_to_nearest_station(stationFence.distance);
-                        UserUpdates.distance_to_nearest_station = stationFence.distance;
-                        newStation = stationFence.stationName;
-                        Log.e("set", newStation);
-
-
-                        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-                        CollectionReference reference = firebaseFirestore.collection("stationdetails");
-                        incrementCounter(reference, newStation);
-                        Log.e("accu dist to", station.name + " " + stationFence.distance);
-                        found = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public void onDataChanged(DataSnapshot dataSnapshot, GeoLocation location) {
-
-    }
-
-    @SuppressLint("NewApi")
-    public boolean incrementCounter(final CollectionReference ref, String name) {
-        UserUpdates.updatedOcc = false;
-        DocumentReference occRef = ref.document("occupancy");
-        String previous_stat = preferences.getString("previous", null);
-        if (previous_stat == null) {
-            Log.e("started journey at", name);
-            /*occRef.update(name, FieldValue.increment(1))
-                    .addOnFailureListener(e -> Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show())
-                    .addOnSuccessListener(aVoid -> Log.e("updated", "occupancy for new!"));
-            UserUpdates.updatedOcc = true;
-            userUpdates.setPrevious_stat(userUpdates.getNearest_station());
-            userUpdates.setDistance_to_prev_station(userUpdates.getDistance_to_nearest_station());
-
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putString("previous", userUpdates.getPrevious_stat().name);
-            editor.apply();
-
-            getCount(occRef, name);*/
-            return false;
-        } else {
-            /*if (!UserUpdates.nearest_station.name.equals(previous_stat)) {
-                Log.e("changed stations to", name);
-                if (UserUpdates.updatedOcc == false) {
-                    occRef.update(name, FieldValue.increment(1))
-                            .addOnFailureListener(e -> Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show())
-                            .addOnSuccessListener(aVoid -> Log.e("updated", "occupancy!"));
-                    userUpdates.setPrevious_stat(userUpdates.getNearest_station());
-                    userUpdates.setDistance_to_prev_station(userUpdates.getDistance_to_nearest_station());
-                    UserUpdates.updatedOcc = true;
-                    getCount(occRef, name);
-                }
-            } else {
-                Log.e("user is still at", name);
-                userUpdates.setPrevious_stat(userUpdates.getNearest_station());
-                userUpdates.setDistance_to_prev_station(userUpdates.getDistance_to_nearest_station());
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("previous", userUpdates.getPrevious_stat().name);
-                editor.apply();
-            }*/
-            return false;
-        }
-    }
-
-    public Task<Integer> getCount(final DocumentReference ref, String stationName) {
-        // Sum the count of each shard in the subcollection
-        //DocumentReference doc = ref.collection("stationdetails").document("occupancy");
-        ref.get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                DocumentSnapshot document = task.getResult();
-                if (document.exists()) {
-                    Log.e("occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
-                } else {
-                    Log.e(TAG, "No such document");
-                }
-            } else {
-                Log.e(TAG, "get failed with ", task.getException());
-            }
-        });
-
-        ref.addSnapshotListener((snapshot, error) -> {
-            UserUpdates.cur_stat_occupancy = snapshot.getDouble(stationName);
-            Log.e("now occupied by", String.valueOf(UserUpdates.cur_stat_occupancy));
-        });
-        return null;
-    }
-
-    public Task<Void> decrementCounter (final CollectionReference ref, String name) {
-        DocumentReference occRef = ref.document("occupancy");
-        if (UserUpdates.nearest_station.name != null) {
-            if (UserUpdates.updatedOcc == false) {
-                occRef.update(name, FieldValue.increment(-1))
-                        .addOnFailureListener(e -> Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show())
-                        .addOnSuccessListener(aVoid -> Log.e("decremented", "occupancy!"));
-                UserUpdates.updatedOcc = true;
-                getCount(occRef, name);
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public void onGeoQueryReady() {
-
-    }
-
-    @Override
-    public void onGeoQueryError(DatabaseError error) {
-        Toast.makeText(getContext(), ""+ error.getMessage(), Toast.LENGTH_SHORT).show();
-    }
-
     public void onLocationChanged(@NonNull Location location) {
-        ShowNearestStations();
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        if (gMap != null) {
-            uid = firebaseAuth.getCurrentUser().getUid();
-            userUpdates.setLocation(location);
-            userUpdates.setLatLngLocation(latLng);
-            userGeoFire.setLocation(uid, new GeoLocation(
-                    location.getLatitude(),
-                    location.getLongitude()), (key, error) -> {
-                if (userMarker != null) userMarker.remove();
+        com.example.fypmetroapp.LatLng now = new com.example.fypmetroapp.LatLng(location.getLatitude(), location.getLongitude());
+        if (role != null) {
+            if (role.equals("User")) {
+                if (gMap != null) {
+                    uid = firebaseAuth.getCurrentUser().getUid();
+                    userUpdates.setLocation(location);
+                    userUpdates.setLatLngLocation(latLng);
+                    if (userMarker != null) userMarker.remove();
 
-                userMarker = gMap.addMarker(new MarkerOptions()
-                        .position(new LatLng(location.getLatitude(),
-                                location.getLongitude()))
-                        .visible(false)
-                        .title(uid));
-
-                userUpdates.setLocation(location);
-                userUpdates.setLatLngLocation(latLng);
-                curLocation = location;
-                ShowNearestStations();
-                gMap.animateCamera(CameraUpdateFactory
-                        .newLatLngZoom(userMarker.getPosition(), 13.0f));
-                initStationsFences();
-                //area identifiers
-                for (StationFence stationFence: getStationsFences()){
-                    gMap.addCircle(new CircleOptions().center(stationFence.stationLocation)
-                            .radius(30)//metres
-                            .strokeColor(Color.BLUE)
-                            .fillColor(0x220000FF)
-                            .strokeWidth(1.0f));
-
-                    //do this when user enters GeoFence
-                    GeoQuery query = userGeoFire.queryAtLocation(
-                            new GeoLocation(stationFence.stationLocation.latitude, stationFence.stationLocation.longitude), 0.15f);
-                    query.addGeoQueryDataEventListener(Maps_Full_Access.this);
+                    userMarker = gMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(location.getLatitude(),
+                                    location.getLongitude()))
+                            .visible(false)
+                            .title(uid));
+                    ShowNearestStations();
+                    Log.e("user marker", "set");
+                    gMap.animateCamera(CameraUpdateFactory
+                            .newLatLngZoom(userMarker.getPosition(), 13.0f));
                 }
-            });
-        }
+            }
+            else if (role.equals("Driver")) {
+                if (gMap != null) {
+                    Bus_DriverUpdates updates = HomeFragment_Driver.updates;
+                    if (updates.bus_name != null) {
+                        driverRef = FirebaseDatabase.getInstance().getReference("tracking").child(updates.type).child(updates.bus_name);
+                        HomeFragment_Driver.send_bus_location(location, updates.bus_name, driverRef);
+                        driverGeoFire.setLocation(updates.bus_name, new GeoLocation(
+                                location.getLatitude(),
+                                location.getLongitude()), (key, error) -> {
+                            if (driverMarker != null) driverMarker.remove();
 
-        Log.e(TAG, "GPS LocationChanged");
-        Log.e(TAG, "Received GPS request for " + latLng);
+                            driverMarker = gMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(location.getLatitude(),
+                                            location.getLongitude()))
+                                    .visible(true)
+                                    .title(updates.bus_name));
+                        });
+                    }
+                }
+            }
+        }
+        tinyDB.putObject("location", now);
     }
 
     @SuppressLint("MissingPermission")
@@ -2657,7 +2099,6 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
     @Override
     public void onResume() {
         super.onResume();
-        preferences.registerOnSharedPreferenceChangeListener(listener);
         tinyDB.registerOnSharedPreferenceChangeListener(listener_db);
     }
 
@@ -2674,705 +2115,7 @@ public class Maps_Full_Access extends Fragment implements GeoQueryDataEventListe
 //                Log.e(String.valueOf(bus.getName()), station_bus.name + " at " + station_bus.getPosition());
 //        }
         Station qb = new QB().addStation();
-        String destq = qb.getPosition().latitude + "," + qb.getPosition().longitude;
-        DirectionsResult results = getDirectionsDetails(destq, "-20.267478, 57.477714", TravelMode.WALKING);
-        if (results != null) {
-            int num = results.routes[0].legs[0].steps.length;
-            try {
-                for (int i = 0; i < num; i++) {
-                    String get = results.routes[0].legs[0].steps[i].htmlInstructions;
-                    String instruction = String.valueOf(Html.fromHtml(get, Html.FROM_HTML_MODE_COMPACT));
-                    Log.e("next", results.routes[0].legs[0].steps[i].startLocation.toString());
-                    Log.e("prev", results.routes[0].legs[0].steps[i].endLocation.toString());
-                }
-            }
-            catch (Exception e) {
-                Log.e("error here", e.getMessage());
-            }
-        }
+        Station pl = new Victoria().addStation();
 
-        Station dest = new Kennedy().addStation();
-        Station ori = new Moka().addStation();
-        ArrayList<Station> stats = new ArrayList<>();
-        int pos = 0;
-
-        //direct bus routing from stat -> stat
-        for (Bus bus: ori.getBuses()) {
-            for (Bus bus2 : dest.getBuses()) {
-                if (bus.getName() == (bus2.getName())) {
-                    Log.e("should take", "" + bus2.getName());
-                    for (Station station: bus2.getStops()) {
-                        if (station.getName().equals(dest.getName())) {
-                            Log.e("from", ori.getName());
-                            Log.e("and get off at", station.getName());
-                            //Log.e("from", bus2.getStops().get(bus2.getStops().size()-1).getName());
-                        }
-                    }
-                }
-            }
-        }
-//        for (Bus bus: dest.getConnects_to()) {
-//            for (Bus bus_qb: qb.getConnects_to()) {
-//                if (bus.equals(bus_qb)) {
-//                    Log.e("QB has", String.valueOf(bus_qb.getName()));
-//                }
-//            }
-//        }
-        ArrayList<Station> buseshere = new ArrayList<>();
-        int stops = 0;
-
-        for (Bus bus: ori.getBuses()) {
-            //for bus at origin
-            for (Bus bus2 : dest.getBuses()) {
-                //then for bus at destination
-
-            }
-        }
-
-//        for (Station station_bus: allLRTStations) {
-//            double dist = SphericalUtil.computeDistanceBetween(start.getPosition(), station_bus.getPosition());
-//            Log.e("taking " + start.getName() + " to", station_bus.name + " " + String.valueOf(dist));
-//            Log.e("bearing", String.valueOf(start_loc.bearingTo(create(station_bus.getPosition()))));
-//        }
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private void checkParams () {
-        walking_Origin_instructions = new ArrayList<>();
-        walking_Dest_instructions = new ArrayList<>();
-        progressDialog.setMessage("Finding the best route...");
-        progressDialog.show();
-        //check if there are any bus stops at destination
-        Station checkDest_BUS = anyBusStopsAtDest(destination.getPosition());
-        Station checkOri_BUS = anyBusStopsAtOri(origin.getPosition());
-        Station checkOri_LRT = anyLRTStopsAtOri(origin.getPosition());
-        Station checkDest_LRT = anyLRTStopsAtDest(destination.getPosition());
-
-        if (checkDest_BUS != null && checkOri_BUS != null) {
-            findRoute(checkOri_BUS, checkDest_BUS);
-        }
-        if (checkOri_LRT != null && checkDest_LRT != null) {
-            findRoute(checkOri_LRT, checkDest_LRT);
-        }
-    }
-
-    private Location create (LatLng latLng) {
-        Location location = new Location(LocationManager.NETWORK_PROVIDER);
-        location.setLongitude(latLng.longitude);
-        location.setLatitude(latLng.latitude);
-        return location;
-    }
-
-    //returns station_bus closest to the destination city
-    private int closestDestDistance_BUS (LatLng destiL) {
-        int small = Integer.MAX_VALUE;
-        for (Station station: allBusStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(destiL, station.getPosition());
-            if (distance < small) {
-                small = distance;
-            }
-        }
-        return small;
-    }
-
-    //returns station_bus closest to the origin city
-    private int closestOriDistance_BUS(LatLng oriL) {
-        int small = Integer.MAX_VALUE;
-        for (Station station: allBusStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(oriL, station.getPosition());
-            if (distance < small) {
-                small = distance;
-            }
-        }
-        return small;
-    }
-
-    //returns bus station_bus closest to the destination city
-    private Station anyBusStopsAtDest (LatLng destiL) {
-        Station dest = new Station();
-        for (Station station: allBusStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(destiL, station.getPosition());
-            if (distance == closestDestDistance_BUS(destiL)) {
-                Log.e("found dest BUS stat", station.getName());
-                destination.setStation_bus(station);
-                dest = station;
-            }
-        }
-        return dest;
-    }
-
-    //returns bus station_bus closest to the origin city
-    private Station anyBusStopsAtOri (LatLng oriL) {
-        Station ori = new Station();
-        for (Station station: allBusStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(oriL, station.getPosition());
-            if (distance == closestOriDistance_BUS(oriL)) {
-                Log.e("found ori BUS stat", station.getName());
-                origin.setStation_bus(station);
-                ori = station;
-            }
-        }
-        return ori;
-    }
-
-    //returns bus station_bus closest to the origin city
-    private Station anyLRTStopsAtOri (LatLng oriL) {
-        Station ori = new Station();
-        for (Station station: allLRTStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(oriL, station.getPosition());
-            if (distance == closestOriDistance_LRT(oriL)) {
-                Log.e("found ori LRT stat", station.getName());
-                origin.setStation_lrt(station);
-                ori = station;
-            }
-        }
-        return ori;
-    }
-
-    //returns bus station_bus closest to the destination city
-    private Station anyLRTStopsAtDest (LatLng destiL) {
-        Station dest = new Station();
-        for (Station station: allLRTStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(destiL, station.getPosition());
-            if (distance == closestDestDistance_LRT(destiL)) {
-                Log.e("found dest LRT stat", station.getName());
-                destination.setStation_lrt(station);
-                dest = station;
-            }
-        }
-        return dest;
-    }
-
-    //returns station_lrt closest to the origin city
-    private int closestOriDistance_LRT (LatLng oriL) {
-        int small = Integer.MAX_VALUE;
-        for (Station station: allLRTStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(oriL, station.getPosition());
-            if (distance < small) {
-                small = distance;
-            }
-        }
-        return small;
-    }
-
-    //returns station_lrt closest to the destination city
-    private int closestDestDistance_LRT (LatLng destiL) {
-        int small = Integer.MAX_VALUE;
-        for (Station station: allLRTStations) {
-            int distance = (int) SphericalUtil.computeDistanceBetween(destiL, station.getPosition());
-            if (distance < small) {
-                small = distance;
-            }
-        }
-        return small;
-    }
-
-    @SuppressLint("NewApi")
-    private void findRoute (Station ori, Station dest) {
-        try {
-            if (walkingFromOrigin() && walkingToDestination()) {
-                if (ori.getType().equals("BUS") && dest.getType().equals("BUS")) {
-                    boolean direct = direct_route_BUS(ori, dest);
-                    boolean conn = connecting_route(ori, dest);
-                    if (!direct) {
-                        if (!conn) {
-                            progressDialog.dismiss();
-                            Toast.makeText(getContext(), "Sorry! No Possible Routes from "
-                                    + ori.getName() + " to " + dest.getName(), Toast.LENGTH_LONG).show();
-                        }
-                    }
-                    if (direct || conn ) {
-                        RouteInstructs();
-                    }
-                }
-                else if (ori.getType().equals("L") && dest.getType().equals("L")) {
-                    boolean dir_lrt = direct_LRT(ori, dest);
-                    if (dir_lrt)
-                        Log.e("found LRT", "ROUTE");
-                }
-            }
-            else {
-                Toast.makeText(getContext(), "Sorry! Failed finding stations.", Toast.LENGTH_LONG).show();
-            }
-        }
-        catch (Exception e) {
-            Log.e("error", e.getMessage());
-        }
-    }
-
-    @SuppressLint("NewApi")
-    private boolean direct_route_BUS (Station ori, Station dest) throws InterruptedException {
-        ArrayList<String> full_route = new ArrayList<>();
-        ArrayList<String> full_summary = new ArrayList<>();
-
-        ArrayList<String> ins_fromD = walking_Dest_instructions;
-        ArrayList<String> ins_fromO = walking_Origin_instructions;
-        ArrayList<String> ins_sum_d = ins_summary_d;
-        ArrayList<String> ins_sum_o = ins_summary_o;
-        Log.e("walk de", "" + walking_dest_vals);
-        Log.e("walk or", "" + walking_origin_vals);
-        double dir_dur = walking_dest_vals + walking_origin_vals;
-
-        boolean yes = false;
-        ArrayList<Bus> buses = new ArrayList<>();
-        if (ori.getType().equals("BUS") && dest.getType().equals("BUS")) {
-            for (Bus bus: ori.getBuses()) {
-                //for bus at origin
-                for (Bus bus2 : dest.getBuses()) {
-                    //then for bus at destination
-                    if (bus.getName() == (bus2.getName())) {
-                        //if ori-stat & dest-stat share same bus
-                        //user get on that bus
-                        //and go to destination
-                        for (String ins: ins_fromO) {
-                            full_route.add(ins);
-                        }
-                        for (String ins: ins_sum_o) {
-                            full_summary.add(ins);
-                        }
-                        full_route.add("----MY DIRECTIONS----");
-                        full_route.add("Take " + bus2.getName() + " from " + ori.getName());
-                        full_summary.add(" -> " + bus2.getName() + " -> ");
-                        for (Station station: bus2.getStops()) {
-                            if (station.getName().equals(dest.getName())) {
-                                double interval = tinyDB.getDouble(String.valueOf(bus2.getName()));
-                                buses.add(bus2);
-                                int stops_to = Math.abs(getPosOrigin_BUS(bus2, ori) - getPosOrigin_BUS(bus2, dest));
-                                full_route.add("Ride for " + stops_to + " stop(s)");
-                                full_route.add("Then get off at " + station.getName());
-                                full_route.add("----MY DIRECTIONS----");
-
-                                int total_time = (int) (stops_to * interval);
-                                int duration = (int) ((int) dir_dur + total_time);
-
-                                for (String ins: ins_fromD) {
-                                    full_route.add(ins);
-                                }
-                                for (String ins: ins_sum_d) {
-                                    full_summary.add(ins);
-                                }
-                                direct_bus_route.setInstructions(full_route);
-                                direct_bus_route.setStops_duration(total_time);
-                                direct_bus_route.setTotal_route_duration(duration);
-                                direct_bus_route.setSummary(full_summary);
-                                return yes = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return yes;
-    }
-
-    private void direct_route1(Station ori, Station dest) {
-        for (Bus bus_ori: ori.getBuses()) {
-            for (Bus bus_dest: dest.getBuses()) {
-                for (Station station: allBusStations) {
-                    for (Bus here: station.getBuses()) {
-                        if (here.getName() == bus_dest.getName() && here.getName() == bus_ori.getName()) {
-                            Log.e("take " + here.getName() + " from " + ori.getName(), "to " + dest.getName());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private boolean connecting_route(Station ori, Station dest) {
-        boolean done_one_con = false;
-        for (Bus bus : ori.getBuses()) {
-            //for bus at origin
-            for (Bus bus2 : dest.getBuses()) {
-                for (Station station1 : bus.getStops()) {
-                    for (Station station2 : bus2.getStops()) {
-                        if (station1.getName().equals(station2.getName())) {
-                            for (Bus bus_switch1: station1.getBuses()) {
-                                //for bus at origin
-                                for (Bus bus_switch2 : dest.getBuses()) {
-                                    //then for bus at destination
-                                    if (bus_switch1.getName() == (bus_switch2.getName())) {
-                                        //if they share same bus
-                                        //user get on that bus
-                                        //and go to destination
-                                        for (Station station : bus_switch2.getStops()) {
-                                            if (station.getName().equals(dest.getName())) {
-                                                ArrayList<String> full_route_con = new ArrayList<>();
-                                                ArrayList<String> full_summary_con = new ArrayList<>();
-                                                ArrayList<String> ins_fromD = walking_Dest_instructions;
-                                                ArrayList<String> ins_fromO = walking_Origin_instructions;
-                                                ArrayList<String> ins_sum_d = ins_summary_d;
-                                                ArrayList<String> ins_sum_o = ins_summary_o;
-                                                double dir_dur = walking_dest_vals + walking_origin_vals;
-
-                                                if (!done_one_con) {
-                                                    if (!station1.getName().equals(ori.getName()) && !station1.getName().equals(dest.getName())) {
-                                                        if (!station2.getName().equals(ori.getName()) && !station2.getName().equals(dest.getName())) {
-                                                            full_summary_con.clear();
-                                                            full_route_con.clear();
-                                                            double interval = 0;
-
-                                                            for (String ins: ins_fromO) {
-                                                                full_route_con.add(ins);
-                                                            }
-                                                            for (String ins: ins_sum_o) {
-                                                                full_summary_con.add(ins);
-                                                            }
-                                                            full_route_con.add("---------CONNECTING--------");
-                                                            if (bus.getName() != bus_switch2.getName()) {
-                                                                String ori_ins = "Take the Bus " + bus.getName() + " from " + ori.getName();
-                                                                full_route_con.add(ori_ins);
-                                                                int stops = Math.abs(getPosOrigin_BUS(bus, ori) - getPosOrigin_BUS(bus, station2));
-                                                                String ori_ins2 = "Ride for " + stops + " stop(s)";
-                                                                full_route_con.add(ori_ins2);
-                                                                String switch_ = "Get off at " + station2.getName();
-                                                                full_route_con.add(switch_);
-                                                                String ins1 = "Change: Then take the Bus " + bus_switch2.getName() + " from " + station1.getName();
-                                                                full_route_con.add(ins1);
-                                                                int ridestops = Math.abs(getPosOrigin_BUS(bus_switch2, station1) - getPosOrigin_BUS(bus_switch2, station));
-                                                                String ins2 = "Ride for " + ridestops + " stop(s)";
-                                                                full_route_con.add(ins2);
-                                                                String ins3 = "Then get off at " + station.getName();
-                                                                full_route_con.add(ins3);
-                                                                full_route_con.add("---------CONNECTING--------");
-                                                                full_summary_con.add(" -> " + bus.getName() + " -> ");
-                                                                full_summary_con.add(bus_switch2.getName() + " -> ");
-
-                                                                //interval between each stop
-                                                                double time_1st_con = stops * tinyDB.getDouble(String.valueOf(bus.getName()));
-                                                                double time_2nd_con = ridestops * tinyDB.getDouble(String.valueOf(bus_switch2.getName()));
-
-                                                                int total_stops_travel_time = (int) (time_1st_con + time_2nd_con);
-                                                                int duration = (int) ((int) dir_dur + total_stops_travel_time);
-
-                                                                for (String ins: ins_fromD) {
-                                                                    full_route_con.add(ins);
-                                                                }
-                                                                for (String ins: ins_sum_d) {
-                                                                    full_summary_con.add(ins);
-                                                                }
-                                                                connect_bus_route.setInstructions(full_route_con);
-                                                                connect_bus_route.setStops_duration(total_stops_travel_time);
-                                                                connect_bus_route.setTotal_route_duration(duration);
-                                                                connect_bus_route.setSummary(full_summary_con);
-                                                                done_one_con = true;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return done_one_con;
-    }
-
-    @SuppressLint("LongLogTag")
-    private boolean direct_LRT (Station origin, Station destination) {
-        ArrayList<String> ins = new ArrayList<>(walking_Origin_instructions);
-        ins.add("----------------- MY DIRECTIONS -----------------");
-        ArrayList<String> ins_summary = new ArrayList<>(ins_summary_o);
-        ArrayList<String> riding = new ArrayList<>();
-
-        boolean yes = false;
-        int dest = getPosDest(destination);
-        int ori = getPosOrigin(origin);
-        int ride = Math.abs(dest - ori);
-        if (dest < ori) {
-            for (Station station: allLRTStations_reversed) {
-                if (station.getName().equals(destination.getName())) {
-                    //Log.e("Get the [Towards Rose-Hill] LRV from ", origin.getName());
-                    //Log.e("Ride for", ride + " stops");
-                    //Log.e("Then get off at", station.getName());
-                    for (Station station1: allLRTStations_reversed) {
-                        int pos = getPosDest(station1);
-                        if (pos <= ride) {
-                            if (!station1.getName().equals(origin.getName())) {
-                                riding.add(station1.getName());
-                            }
-                        }
-                    }
-                    ins.add("Get the [Towards Rose-Hill] LRV from " + origin.getName());
-                    ins.add("Ride for " + ride + " stops");
-                    ins.add("Then get off at " + station.getName());
-                    ins.add("----------------- MY DIRECTIONS -----------------");
-
-                    int duration = (int) ((ride * 12) + (walking_origin_vals + walking_dest_vals));
-                    String ins_sum = " -> LRT [RH] -> ";
-                    ins_summary.add(ins_sum);
-                    ins.addAll(walking_Dest_instructions);
-                    ins_summary.addAll(ins_summary_d);
-
-                    direct_lrt_route.setOrigin(origin);
-                    direct_lrt_route.setDestination(station);
-                    direct_lrt_route.setRidingList(riding);
-                    direct_lrt_route.setInstructions(ins);
-                    direct_lrt_route.setSummary(ins_summary);
-                    direct_lrt_route.setTotal_route_duration(duration);
-                    return yes = true;
-                }
-            }
-        }
-        else {
-            for (Station station: allLRTStations) {
-                if (station.getName().equals(destination.getName())) {
-                    //Log.e("Get the [Towards Port Louis] LRV from ", origin.getName());
-                    //Log.e("Ride for", ride + " stops");
-                    //Log.e("Then get off at", station.getName());
-                    for (Station station1: allLRTStations) {
-                        int pos = getPosDest(station1);
-                        if (pos <= ride) {
-                            if (!station1.getName().equals(origin.getName())) {
-                                riding.add(station1.getName());
-                            }
-                        }
-                    }
-                    ins.add("Get the [Towards Port Louis] LRV from " + origin.getName());
-                    ins.add("Ride for " + ride + " stops");
-                    ins.add("Then get off at " + station.getName());
-                    ins.add("----------------- MY DIRECTIONS -----------------");
-                    ins.addAll(walking_Dest_instructions);
-
-                    int duration = (int) ((ride * 12) + (walking_origin_vals + walking_dest_vals));
-                    String ins_sum = " -> LRT [PL] -> ";
-                    ins_summary.add(ins_sum);
-                    ins_summary.addAll(ins_summary_d);
-
-                    direct_lrt_route.setOrigin(origin);
-                    direct_lrt_route.setDestination(station);
-                    direct_lrt_route.setRidingList(riding);
-                    direct_lrt_route.setInstructions(ins);
-                    direct_lrt_route.setSummary(ins_summary);
-                    direct_lrt_route.setTotal_route_duration(duration);
-                    return yes = true;
-                }
-            }
-        }
-        return yes;
-    }
-
-    private int getPosOrigin (Station origin) {
-        int origin_pos_in_array = 0;
-        for (Station station: allLRTStations) {
-            if (station.getName().equals(origin.getName())) {
-                Log.e("Origin position", allLRTStations.indexOf(station) + "");
-                origin_pos_in_array += allLRTStations.indexOf(station);
-            }
-        }
-        return origin_pos_in_array;
-    }
-
-    private int getPosOrigin_BUS (Bus bus, Station origin) {
-        ArrayList<Station> stops = bus.getStops();
-        int origin_pos_in_array = 0;
-        for (Station station: stops) {
-            if (station.getName().equals(origin.getName())) {
-                origin_pos_in_array += stops.indexOf(station);
-                Log.e("stat " + station.getName(), "pos in " + bus.getName() + " " + origin_pos_in_array);
-            }
-        }
-        return Math.abs(origin_pos_in_array);
-    }
-
-    private int getPosDest (Station destination) {
-        int dest_pos_in_array = 0;
-        for (Station station: allLRTStations) {
-            if (station.getName().equals(destination.getName())) {
-                Log.e("Destination position", allLRTStations.indexOf(station) + "");
-                dest_pos_in_array += allLRTStations.indexOf(station);
-            }
-        }
-        return dest_pos_in_array;
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private boolean walkingFromOrigin() {
-        gMap.clear();
-        boolean success = false;
-        double duration = 0;
-        walking_Origin_instructions = new ArrayList<>();
-        ArrayList<String> instructs_full = new ArrayList<>();
-        ArrayList<String> instructs_summary = new ArrayList<>();
-        String origStation = origin.getStation_bus().getPosition().latitude + "," + origin.getStation_bus().getPosition().longitude;
-
-        //at this stage direct the user to the station_bus that will
-        //get them the bus to reach their destination
-        DirectionsResult results = getDirectionsDetails(origin.getOrigin(), origStation, TravelMode.WALKING);
-        if (results != null) {
-            int num = results.routes[0].legs[0].steps.length;
-            instructs_summary.add("Walk " + results.routes[0].legs[0].duration);
-            duration += Double.parseDouble((results.routes[0].legs[0].duration.humanReadable).replaceAll("[\\D]", ""));
-            try {
-                for (int i = 0; i < num; i++) {
-                    String get = results.routes[0].legs[0].steps[i].htmlInstructions;
-                    String instruction = String.valueOf(Html.fromHtml(get, Html.FROM_HTML_MODE_COMPACT));
-                    instructs_full.add(instruction);
-                    success = true;
-                }
-                addWalkToBusPolyline(results, gMap);
-                positionCamera(results.routes[overview], gMap);
-            }
-            catch (Exception e) {
-                Log.e("error here", e.getMessage());
-            }
-            addPolyline(results, gMap);
-            positionCamera(results.routes[overview], gMap);
-            bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_HIDDEN);
-            bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
-            nearbyCardView.setVisibility(View.INVISIBLE);
-            bottomSheetBehavior_Follow_Route.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-            rlDirections.setVisibility(View.INVISIBLE);
-        }
-        walking_Origin_instructions = instructs_full;
-        walking_origin_vals = duration;
-        ins_summary_o = instructs_summary;
-        return success;
-    }
-
-    @SuppressLint("NewApi")
-    private boolean walkingToDestination() {
-        boolean success = false;
-        walking_Dest_instructions = new ArrayList<>();
-        ArrayList<String> instructs_full = new ArrayList<>();
-        ArrayList<String> instructs_sum = new ArrayList<>();
-        ins_summary_d = new ArrayList<>();
-        double duration = 0;
-        //at this stage direct the user from the station_bus to
-        //get them the bus to reach their destination
-        String destiStation = destination.getStation_bus().getPosition().latitude + "," + destination.getStation_bus().getPosition().longitude;
-        DirectionsResult results = getDirectionsDetails(destiStation, destination.getDestination(), TravelMode.WALKING);
-        if (results != null) {
-            int num = results.routes[0].legs[0].steps.length;
-            instructs_sum.add(" Walk " + results.routes[0].legs[0].duration);
-            duration += Double.parseDouble((results.routes[0].legs[0].duration.humanReadable).replaceAll("[\\D]", ""));
-            try {
-                for (int i = 0; i < num; i++) {
-                    String get = results.routes[0].legs[0].steps[i].htmlInstructions;
-                    String instruction = String.valueOf(Html.fromHtml(get, Html.FROM_HTML_MODE_COMPACT));
-                    instructs_full.add(instruction);
-                    success = true;
-                }
-                addWalkToBusPolyline(results, gMap);
-                positionCamera(results.routes[overview], gMap);
-            }
-            catch (Exception e) {
-                Log.e("error here", e.getMessage());
-            }
-        }
-        walking_Dest_instructions = instructs_full;
-        walking_dest_vals = duration;
-        ins_summary_d = instructs_sum;
-        return success;
-    }
-
-    private void RouteInstructs() {
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                progressDialog.dismiss();
-                computed_layout.setVisibility(View.VISIBLE);
-
-                ArrayList<Route> alt_routes = new ArrayList<>();
-                alt_routes.add(direct_bus_route);
-                alt_routes.add(connect_bus_route);
-                setAdapter_Alts(alt_routes);
-
-                ArrayList<Route> best_routes = new ArrayList<>();
-                best_routes.add(direct_lrt_route);
-                setAdapter_Best(best_routes);
-            }
-        }, 5000);
-    }
-
-    //show the directions for a bus route
-    static void setRouteAdapter (Route route, Context context) {
-        computed_layout.setVisibility(View.INVISIBLE);
-        Route_RecyclerAdapter adapter = new Route_RecyclerAdapter(route.getInstructions(), route, context);
-        RecyclerView.LayoutManager manager = new LinearLayoutManager(context);
-        recyclerView_full.setLayoutManager(manager);
-        recyclerView_full.setItemAnimator(new DefaultItemAnimator());
-        recyclerView_full.setAdapter(adapter);
-    }
-
-    static void setPrevious (Route route) {
-        previous = route;
-        tinyDB.putListString("Prev", route.getSummary());
-        tinyDB.putListString("Prev_Full", route.getInstructions());
-    }
-
-    private void setAdapter_Alts (ArrayList<Route> routes) {
-        Computed_RecyclerAdapter adapter = new Computed_RecyclerAdapter(routes, this.getContext(), this.getView());
-        RecyclerView.LayoutManager manager = new LinearLayoutManager(getContext());
-        recyclerView_alts.setLayoutManager(manager);
-        recyclerView_alts.setItemAnimator(new DefaultItemAnimator());
-        recyclerView_alts.setAdapter(adapter);
-    }
-
-    private void setAdapter_Best (ArrayList<Route> routes) {
-        Computed_RecyclerAdapter adapter = new Computed_RecyclerAdapter(routes, this.getContext(), this.getView());
-        RecyclerView.LayoutManager manager = new LinearLayoutManager(getContext());
-        recyclerView_lrt.setLayoutManager(manager);
-        recyclerView_lrt.setItemAnimator(new DefaultItemAnimator());
-        recyclerView_lrt.setAdapter(adapter);
-    }
-
-    static void show_ride_stops_buses (Context context, ArrayList<String> instructions, String main) {
-        ride_stops_dialog = new Dialog(context);
-        ride_stops_dialog.setContentView(R.layout.dialog_ride_stops);
-        ride_stops_dialog.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
-        ImageButton closeDialog = ride_stops_dialog.findViewById(R.id.dialog_closeX);
-        TableLayout buses = ride_stops_dialog.findViewById(R.id.riding_stops);
-        TextView ride_for = ride_stops_dialog.findViewById(R.id.ride_for);
-        ride_for.setText(main);
-        buses.removeAllViews();
-        follow_anim = ride_stops_dialog.findViewById(R.id.follow_anim);
-        animateView_follow(follow_anim, true, context);
-        for (String ins: instructions) {
-            TextView tv = new TextView(ride_stops_dialog.getContext());
-            tv.setText(ins);
-
-            LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            TableRow mainRow = new TableRow(context);
-
-            inflater.inflate(R.layout.inflate_ride_stop, mainRow);
-            mainRow.addView(tv);
-            //mainRow.addView(stopDistanceText);
-
-            //onclick listener for each row
-            mainRow.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Toast.makeText(context, "clicked" + ins, Toast.LENGTH_LONG).show();
-                }
-            });
-            buses.addView(mainRow);
-        }
-        closeDialog.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                animateView_follow(follow_anim, false, context);
-                ride_stops_dialog.dismiss();
-            }
-        });
-        ride_stops_dialog.show();
-    }
-
-    @SuppressLint("NewApi")
-    static void animateView_follow (ImageView imageView, boolean animate, Context context) {
-        AnimatedVectorDrawable d = (AnimatedVectorDrawable) context.getResources().getDrawable(R.drawable.follow_route);
-        // Insert your AnimatedVectorDrawable resource identifier
-        follow_anim.setImageDrawable(d);
-
-        if (animate) {
-            d.start();
-        }
-        else
-            d.stop();
     }
 }

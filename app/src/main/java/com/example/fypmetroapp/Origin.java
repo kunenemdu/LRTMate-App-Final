@@ -1,7 +1,5 @@
 package com.example.fypmetroapp;
 
-import com.google.android.gms.maps.model.LatLng;
-
 public class Origin {
     String origin;
     String name;

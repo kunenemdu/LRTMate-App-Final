@@ -1,11 +1,39 @@
 package com.example.fypmetroapp;
 
 public class User {
-    private static String fullname, groups, email;
+    private String fullname, role, groups, email;
     private String preferences;
     private String userid;
     private String phone;
     private Boolean disabled;
+    private int trips;
+
+    public User(String fullname, String userid, String email, String role) {
+        this.fullname = fullname;
+        this.userid = userid;
+        this.email = email;
+        this.role = role;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+
+    public int getTrips() {
+        return trips;
+    }
+
+    public void setTrips(int trips) {
+        this.trips = trips;
+    }
 
     public String getPreferences() {
         return preferences;
@@ -35,28 +63,28 @@ public class User {
         this.fullname = fullname;
     }
 
-    public static String getFullname() {
+    public String getFullname() {
         return fullname;
     }
 
-    public static void setFullname(String fullname) {
-        User.fullname = fullname;
+    public void setFullname(String fullname) {
+        this.fullname = fullname;
     }
 
-    public static String getGroups() {
+    public String getGroups() {
         return groups;
     }
 
-    public static void setGroups(String groups) {
-        User.groups = groups;
+    public void setGroups(String groups) {
+        this.groups = groups;
     }
 
-    public static String getEmail() {
+    public String getEmail() {
         return email;
     }
 
-    public static void setEmail(String email) {
-        User.email = email;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public Boolean getDisabled() {
@@ -69,14 +97,5 @@ public class User {
 
     public User() {
         // Default constructor required for calls to DataSnapshot.getValue(User.class)
-    }
-
-    public User(String userid, String email, String fullname, String phone, String groups, String preferences) {
-        this.userid = userid;
-        this.fullname = fullname;
-        this.phone = phone;
-        this.email = email;
-        this.groups = groups;
-        this.preferences = preferences;
     }
 }

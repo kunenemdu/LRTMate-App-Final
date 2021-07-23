@@ -37,7 +37,6 @@ import java.util.Map;
 
 public class UserPreferencesFragment extends Fragment implements AdapterView.OnItemSelectedListener {
     Button savePrefs;
-    SharedPreferences sharedPreferences;
     String uid;
     Map<String, Object> this_user;
     DocumentReference documentPrefs;
@@ -47,7 +46,6 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         this_user = new HashMap<>();
-        sharedPreferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         //Log.e("user", userid);
     }
 
@@ -99,7 +97,6 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
         tolerance.setOnItemSelectedListener(this);
         disabled.setOnItemSelectedListener(this);
         preferred_spinner.setOnItemSelectedListener(this);
-
         getUser();
         savePrefs.setOnClickListener(onClickListener);
     }
@@ -110,17 +107,14 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
         public void onClick(View v) {
             //Log.e("clicked", "save");
             firebaseFirestore = FirebaseFirestore.getInstance();
-            SharedPreferences pref = getActivity().getApplicationContext().getSharedPreferences("UserPrefs", Config.MODE_PRIVATE);
-            String role = pref.getString("role", null);
+            String role = NavigationActivity.tinyDB.getString("role");
 
             documentPrefs = firebaseFirestore.collection(role)
                     .document(uid).collection("preferences").document("prefs");
 
             documentPrefs.set(this_user).addOnSuccessListener(aVoid -> {
                 Toast.makeText(getContext(), "Preferences Saved!", Toast.LENGTH_SHORT).show();
-                SharedPreferences.Editor editor = pref.edit();
-                editor.putBoolean("prefs_done", true);
-                editor.apply();
+                NavigationActivity.tinyDB.putBoolean("prefs_done", true);
                 startActivity(new Intent(getContext(), NavigationActivity.class));
             }).addOnFailureListener(e -> {
                 Log.e("failed", "onfailure triggered!" + e.toString());
@@ -133,7 +127,6 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
             @Override
             public void run() {
                 uid = NavigationActivity.firebaseAuth.getCurrentUser().getUid();
-                SharedPreferences.Editor editor = sharedPreferences.edit();
             }
         }, 3000);
     }
@@ -143,22 +136,27 @@ public class UserPreferencesFragment extends Fragment implements AdapterView.OnI
         if (adapterView != null){
             ((TextView) adapterView.getChildAt(0)).setTextColor(Color.WHITE);
         }
-
+        User user = NavigationActivity.tinyDB.getObject("User", User.class);
         //show users full name
         switch (String.valueOf(adapterView.getResources().getResourceEntryName(adapterView.getId()))) {
             case "disabled_spinner":
+                NavigationActivity.tinyDB.putBoolean("disabled", true);
                 this_user.put("disabled", adapterView.getSelectedItem());
                 break;
             case "tolerance_spinner":
+                NavigationActivity.tinyDB.putString("delay_tolerance", String.valueOf(adapterView.getSelectedItem()));
                 this_user.put("delay_tolerance", adapterView.getSelectedItem());
                 break;
             case "lifestyle_spinner":
+                NavigationActivity.tinyDB.putString("lifestyle", String.valueOf(adapterView.getSelectedItem()));
                 this_user.put("lifestyle", adapterView.getSelectedItem());
                 break;
             case "frequency_spinner":
+                NavigationActivity.tinyDB.putString("frequency", String.valueOf(adapterView.getSelectedItem()));
                 this_user.put("frequency", adapterView.getSelectedItem());
                 break;
             case "preferred_spinner":
+                NavigationActivity.tinyDB.putString("preferred", String.valueOf(adapterView.getSelectedItem()));
                 this_user.put("preferred", adapterView.getSelectedItem());
                 break;
 

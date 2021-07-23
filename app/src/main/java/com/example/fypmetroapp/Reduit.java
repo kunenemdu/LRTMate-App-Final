@@ -12,6 +12,7 @@ public class Reduit extends Station {
         station.type = "BUS";
         station.position = new LatLng(-20.232312, 57.498751);
         station.buses = getBuses();
+        station.occupancy = 12;
         return station;
     }
 

@@ -12,6 +12,27 @@ public class Station {
     ArrayList<Bus> buses;
     ArrayList<Station> connects_to;
     ArrayList<LRT> lines;
+    int occupancy;
+
+    public Station(int distance, String name, LatLng position, String type, ArrayList<Bus> buses) {
+        this.distance = distance;
+        this.name = name;
+        this.position = position;
+        this.type = type;
+        this.buses = buses;
+    }
+
+    public Station() {
+        //default constructor
+    }
+
+    public int getOccupancy() {
+        return occupancy;
+    }
+
+    public void setOccupancy(int occupancy) {
+        this.occupancy = occupancy;
+    }
 
     public ArrayList<LRT> getLines() {
         return lines;
