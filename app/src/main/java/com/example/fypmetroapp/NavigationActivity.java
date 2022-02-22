@@ -35,12 +35,8 @@ import androidx.fragment.app.FragmentManager;
 
 public class NavigationActivity extends AppCompatActivity {
 
-    final Fragment maps_holder = new NearMeHolder();
-    final Fragment profileFragment = new ProfileFragment();
-    final Fragment userprefs = new UserPreferencesFragment();
-    final Fragment ticketFragment = new TicketFragment();
-    final Fragment homeFragment_user = new HomeFragment_User();
-    final Fragment homeFragment_driver = new HomeFragment_Driver();
+    final Fragment settings = new SettingsActivity.SettingsFragment();
+
     static FragmentManager fm;
     static Fragment active;
     private DrawerLayout dl;
@@ -68,12 +64,10 @@ public class NavigationActivity extends AppCompatActivity {
         firebaseAuth = FirebaseAuth.getInstance();
         activity = this;
 
-        //getSupportActionBar().hide();
-        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
         //set launch activity
         navigation = findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+        navigation.setSelectedItemId(R.id.navigation_home);
         preferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         //role = preferences.getString("role", null);
         tinyDB = new TinyDB(getApplicationContext());
@@ -82,18 +76,7 @@ public class NavigationActivity extends AppCompatActivity {
         this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         provider = locationManager.getBestProvider(criteria, false);
-        //buggy switching from launch fix
-        fm.beginTransaction().add(R.id.main_container, maps_holder, "1").hide(maps_holder).commit();
-        if (role.equals("User")) {
-            fm.beginTransaction().add(R.id.main_container, homeFragment_user, "2").commit();
-            active = homeFragment_user;
-        } else if (role.equals("Driver")) {
-            fm.beginTransaction().add(R.id.main_container, homeFragment_driver, "3").commit();
-            active = homeFragment_driver;
-        }
-        fm.beginTransaction().add(R.id.main_container, userprefs, "6").hide(userprefs).commit();
-        fm.beginTransaction().add(R.id.main_container, ticketFragment, "4").hide(ticketFragment).commit();
-        fm.beginTransaction().add(R.id.main_container, profileFragment, "5").hide(profileFragment).commit();
+
         fm.executePendingTransactions();
     }
 
@@ -106,17 +89,16 @@ public class NavigationActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         dl = findViewById(R.id.drawerLayout);
         legendButton = findViewById(R.id.legend_show);
-        legendButton.setOnClickListener(v -> HomeFragment_User.stationLegendReminder.show());
+        //legendButton.setOnClickListener(v -> HomeFragment_User.stationLegendReminder.show());
         navname = findViewById(R.id.nameToolbar);
         navid = findViewById(R.id.IDToolbar);
         nv = findViewById(R.id.left_menu);
 
         showButton = toolbar.findViewById(R.id.menu_show);
         hideButton = nv.findViewById(R.id.menu_hide);
-        show_tips = toolbar.findViewById(R.id.show_tips);
-        if (role.equals("User")) {
-            show_tips.setOnClickListener(v -> HomeFragment_User.showToolTipsHome());
-        }
+//        if (role.equals("User")) {
+//            show_tips.setOnClickListener(v -> HomeFragment_User.showToolTipsHome());
+//        }
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, dl, R.string.Open, R.string.Close);
         dl.addDrawerListener(toggle);
@@ -131,17 +113,15 @@ public class NavigationActivity extends AppCompatActivity {
                     navigation.setSelectedItemId(R.id.navigation_profile);
                     fm.beginTransaction()
                             .hide(active)
-                            .show(profileFragment)
                             .commit();
-                    active = profileFragment;
                     dl.closeDrawers();
                 return true;
                 case R.id.settings:
                     fm.beginTransaction()
-                            .hide(active)
-                            .show(userprefs)
+                            //.hide(active)
+                            .show(settings)
                             .commit();
-                    active = userprefs;
+                    active = settings;
                     dl.closeDrawers();
                 return true;
                 case R.id.logout:
@@ -153,7 +133,7 @@ public class NavigationActivity extends AppCompatActivity {
         });
         showButton.setOnClickListener(Drawer_Menu_Buttons);
         hideButton.setOnClickListener(Drawer_Menu_Buttons);
-        getuser();
+        //getuser();
         super.onStart();
     }
 
@@ -167,9 +147,6 @@ public class NavigationActivity extends AppCompatActivity {
                     break;
                 case R.id.menu_hide:
                     dl.closeDrawers();
-                    break;
-                case R.id.show_tips:
-                    HomeFragment_User.showToolTipsHome();
                     break;
             }
         }
@@ -190,7 +167,7 @@ public class NavigationActivity extends AppCompatActivity {
     @SuppressLint("NewApi")
     public void LogOutUser () {
         FirebaseAuth.getInstance().signOut();
-        Intent logOutIntent = new Intent(this, MainActivity.class);
+        Intent logOutIntent = new Intent(this, Placeholder.class);
         startActivity(logOutIntent);
     }
 
@@ -200,36 +177,11 @@ public class NavigationActivity extends AppCompatActivity {
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
             switch (item.getItemId()) {
-                case R.id.navigation_nearMe:
-                    fm.beginTransaction()
-                            .hide(active)
-                            .show(maps_holder)
-                            .commit();
-                    active = maps_holder;
-                    return true;
-
-                case R.id.navigation_profile:
-                    fm.beginTransaction()
-                            .hide(active)
-                            .show(profileFragment)
-                            .commit();
-                    active = profileFragment;
-                    return true;
-
-                case R.id.navigation_ticket:
-                    fm.beginTransaction()
-                            .hide(active)
-                            .show(ticketFragment)
-                            .commit();
-                    active = ticketFragment;
-                    return true;
 
                 case R.id.navigation_home:
+                    item.setTitle("Home");
                     fm.beginTransaction()
-                            .hide(active)
-                            .show(homeFragment_user)
                             .commit();
-                    active = homeFragment_user;
                     return true;
             }
             return false;
@@ -245,20 +197,5 @@ public class NavigationActivity extends AppCompatActivity {
             moveTaskToBack(false);
             super.onBackPressed();
         }
-    }
-
-    static void displayToolTip(int position, int align, View view) {
-        String message = "";
-        ToolTipsManager manager = HomeFragment_User.manager;
-        switch (view.getId()) {
-            case R.id.legend_show:
-            case R.id.show_tips:
-                message = "Want To See These Tips Again?";
-                break;
-        }
-        ToolTip.Builder builder = new ToolTip.Builder(view.getContext(), view, toolbar, message, position);
-        builder.setAlign(align);
-        builder.setBackgroundColor(Color.BLUE);
-        manager.show(builder.build());
     }
 }

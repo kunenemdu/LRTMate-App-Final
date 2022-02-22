@@ -118,7 +118,7 @@ public class HomeFragment_User extends Fragment implements ToolTipsManager.TipLi
                 update_favourites();
                 update_previous();
                 times_seen = NavigationActivity.tinyDB.getInt("times_seen");
-                showToolTipsHome();
+                //showToolTipsHome();
                 if (!role.equals("Driver")) {
                     if (legend_seen == false)
                         showStationsLegend(true);
@@ -415,7 +415,7 @@ public class HomeFragment_User extends Fragment implements ToolTipsManager.TipLi
                 message = "Your Favourite Places Are Kept Here.";
                 break;
             case R.id.legend_show:
-                NavigationActivity.displayToolTip(position, align, view);
+                //NavigationActivity.displayToolTip(position, align, view);
                 break;
             case R.id.bottom_home_sheet:
                 message = "Check If Everything Is Normal.";

@@ -121,7 +121,7 @@ public class PermissionsActivity extends AppCompatActivity implements LocationLi
     }
 
     private void startSplashActivity() {
-        Intent loginIntent = new Intent(PermissionsActivity.this, MainActivity.class);
+        Intent loginIntent = new Intent(PermissionsActivity.this, NavigationActivity.class);
         startActivity(loginIntent);
     }
 

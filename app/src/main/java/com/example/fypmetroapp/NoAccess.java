@@ -159,13 +159,6 @@ public class NoAccess extends AppCompatActivity {
                         active = profileFragment;
                         return true;
 
-                    case R.id.navigation_ticket:
-                        fm.beginTransaction()
-                                .hide(active)
-                                .show(ticketFragment)
-                                .commit();
-                        active = ticketFragment;
-                        return true;
 
                     case R.id.navigation_home:
                         fm.beginTransaction()

@@ -40,7 +40,7 @@
     <color name="yellow_A200">#FFFF00</color>
     <color name="yellow_A400">#FFEA00</color>
     <color name="yellow_A700">#FFD600</color>
-    <color name="main_blue">#3973ac</color>
+    <color name="main_blue">#0336FF</color>
     <color name="bright_blue">#0000FF</color>
     <color name="normal_green">#0f9d58</color>
 </resources>

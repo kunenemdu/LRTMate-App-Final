@@ -221,7 +221,7 @@ public class LoginFragment extends Fragment implements AdapterView.OnItemSelecte
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
         if (adapterView != null){
-            ((TextView) adapterView.getChildAt(0)).setTextColor(Color.WHITE);
+            //((TextView) adapterView.getChildAt(0)).setTextColor(Color.WHITE);
         }
 
         switch (String.valueOf(adapterView.getResources().getResourceEntryName(adapterView.getId()))) {

@@ -20,7 +20,6 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.format.Time;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -39,7 +38,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
@@ -113,13 +111,15 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
     private Handler progress_handler = new Handler();
     private LocationManager locationManager;
     private String provider;
-    Dialog buses_at_station;
-    TextView txtBusName;
+    Dialog buses_at_station, lrvs_moving;
+    TextView txtVehicleName;
     boolean selected_bus = false;
+    boolean selected_lrv = false;
     final Handler timeHandler = new Handler(Looper.getMainLooper());
     LinearLayout indic;
     private DatabaseReference mDatabase;
-    static Bus_DriverUpdates updates = new Bus_DriverUpdates();
+    static Bus_DriverUpdates bus_updates = new Bus_DriverUpdates();
+    static LRV_DriverUpdates lrv_updates = new LRV_DriverUpdates();
     Station station = new QB().addStation();
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -149,6 +149,7 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
         progress_ticker = getView().findViewById(R.id.progress_ticker);
         progress_ticker.setCharacterLists(TickerUtils.provideNumberList());
         buses_at_station = new Dialog(getActivity());
+        lrvs_moving = new Dialog(getActivity());
 
         //on load pan camera to user's location
         LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
@@ -162,6 +163,7 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
         stop = getView().findViewById(R.id.stop_btn);
         init = getView().findViewById(R.id.init);
         indic = getView().findViewById(R.id.ringIndic);
+        txtVehicleName = getView().findViewById(R.id.selected_vehicle);
 
         cur_stationTicker = getView().findViewById(R.id.curStation);
         cur_stationTicker.setCharacterLists(TickerUtils.provideAlphabeticalList());
@@ -229,7 +231,7 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
                         }
                         loaderBar.setVisibility(View.INVISIBLE);
                         loaderBar.clearAnimation();
-                        loader.setVisibility(View.INVISIBLE);
+                        //loader.setVisibility(View.INVISIBLE);
                     }
                 }).start();
 
@@ -306,18 +308,24 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
         ref.setValue(bus);
     }
 
+    static void send_lrv_location (Location position, String lrv_name, DatabaseReference ref) {
+        Log.e("sent location for", lrv_name);
+        Bus_Tracker bus = new Bus_Tracker(new com.example.fypmetroapp.LatLng(position.getLatitude(), position.getLongitude()), lrv_name);
+        ref.setValue(bus);
+    }
+
     View.OnClickListener track_buttons = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             switch (v.getId()) {
                 case R.id.begin_btn:
-                    updates.setTracking(true);
+                    bus_updates.setTracking(true);
                     start_routing(getContext());
                     break;
                 case R.id.stop_btn:
-                    updates.setTracking(false);
+                    bus_updates.setTracking(false);
                     stopTracking();
-                    animateView(updates.tracking);
+                    animateView(bus_updates.tracking);
                     break;
             }
         }
@@ -327,8 +335,8 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
     private void stopTracking () {
         begin.setVisibility(View.VISIBLE);
         stop.setVisibility(View.INVISIBLE);
-        if (!updates.tracking) {
-            txtBusName.setText("...");
+        if (!bus_updates.tracking) {
+            txtVehicleName.setText("...");
             proximity.setText("Waiting to");
             cur_stationTicker.setText("Receive Updates...");
             status.setText("Waiting to Receive Updates...");
@@ -346,6 +354,26 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
         stop.setVisibility(View.VISIBLE);
         //Log.e("loc", userUpdates.nearest_station.name);
         ShowBusesDialog(station);
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                handler.postDelayed(this, 2000);
+                //time = d/s [avg walking speed humans = 6kph]
+                //TODO: CALCULATE THIS USING USER'S AVG SPEED IF ON FOOT/DRIVING/CYCLING
+                proximity.setTextColor(getResources().getColor(R.color.normal_green));
+                cur_stationTicker.setText(station.name);
+                cur_stationTicker.setTextColor(Color.BLUE);
+            }
+        }, 2000);
+    }
+
+    @SuppressLint("SetTextI18n")
+    public void initTracking_LRV () {
+        begin.setVisibility(View.INVISIBLE);
+        stop.setVisibility(View.VISIBLE);
+        //Log.e("loc", userUpdates.nearest_station.name);
+        ShowLRVDialog();
         Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
             @Override
@@ -627,12 +655,47 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
 
     private void ShowBusesDialog(Station station) {
         buses_at_station.setContentView(R.layout.choose_bus_dialog);
-        txtBusName = buses_at_station.findViewById(R.id.txtBusStation_home);
         buses_at_station.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
         buses_at_station.show();
         Extract_BUS_Data(station);
         //TableLayout buses = buses_at_station.findViewById(R.id.buses_at_station_home);
         //buses.removeAllViews();
+    }
+
+    private void ShowLRVDialog() {
+        lrvs_moving.setContentView(R.layout.choose_lrv_dialog);
+        lrvs_moving.getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
+        lrvs_moving.show();
+
+        TextView pl = lrvs_moving.findViewById(R.id.pl);
+        TextView rh = lrvs_moving.findViewById(R.id.rh);
+
+        View.OnClickListener lrvs = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String clickled_lrv = "";
+                switch (v.getId()) {
+                    case R.id.pl:
+                        clickled_lrv = "-> PL";
+                        break;
+                    case R.id.rh:
+                        clickled_lrv = "-> RH";
+                        break;
+                }
+                selected_lrv = true;
+                lrv_updates.setTracking(selected_lrv);
+                lrv_updates.setLrv_name(clickled_lrv);
+                lrv_updates.setType("LRT");
+                lrvs_moving.dismiss();
+                status.setText(clickled_lrv + " Is Sending Location Updates.");
+                TextView textView = getView().findViewById(R.id.selected_vehicle);
+                textView.setText(clickled_lrv);
+                animateView(lrv_updates.tracking);
+            }
+        };
+
+        pl.setOnClickListener(lrvs);
+        rh.setOnClickListener(lrvs);
     }
 
     @SuppressLint("NewApi")
@@ -696,16 +759,16 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
                     selected_bus = true;
                     String clickedBus = String.valueOf(tvName.getText());
                     getTimes(station, clickedBus);
-                    updates.setTracking(selected_bus);
-                    updates.setBus_name(clickedBus);
-                    updates.setType("BUS");
+                    bus_updates.setTracking(selected_bus);
+                    bus_updates.setBus_name(clickedBus);
+                    bus_updates.setType("BUS");
                     buses_at_station.dismiss();
                     status.setText(clickedBus + " Is Sending Location Updates.");
                     ImageButton closeDialog = getView().findViewById(R.id.dialog_closeX);
                     ImageView occupancy_anim = getView().findViewById(R.id.occupancy_anim);
-                    TextView textView = getView().findViewById(R.id.selected_bus);
+                    TextView textView = getView().findViewById(R.id.selected_vehicle);
                     textView.setText(clickedBus);
-                    animateView(updates.tracking);
+                    animateView(bus_updates.tracking);
                 });
             }
         } catch (JSONException e) {
@@ -735,6 +798,7 @@ public class HomeFragment_Driver extends Fragment implements LocationListener {
                 switch (which) {
                     case 0:
                         dialog.dismiss();
+                        initTracking_LRV();
                         break;
                     case 1:
                         dialog.dismiss();
