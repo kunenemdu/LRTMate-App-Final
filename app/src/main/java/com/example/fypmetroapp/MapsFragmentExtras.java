@@ -413,7 +413,8 @@ public class MapsFragmentExtras extends Fragment implements LocationListener {
         });
 
         gMap.setOnPoiClickListener(pointOfInterest -> {
-            bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            if (bottomSheetBehavior_Directions.getState() == BottomSheetBehavior.STATE_EXPANDED)
+                bottomSheetBehavior_Directions.setState(BottomSheetBehavior.STATE_COLLAPSED);
             //if place selected previously
             if (poiMarker != null) {
                 //if new place selected

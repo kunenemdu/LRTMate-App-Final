@@ -2,15 +2,12 @@ package com.example.fypmetroapp;
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
-import com.firebase.geofire.GeoQuery;
-import com.firebase.geofire.GeoQueryDataEventListener;
 import com.google.android.flexbox.FlexboxLayout;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.Dash;
 import com.google.android.gms.maps.model.Dot;
 import com.google.android.gms.maps.model.Gap;
@@ -24,7 +21,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -36,9 +32,6 @@ import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -53,7 +46,6 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -108,11 +100,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.maps.DirectionsApi;
 import com.google.maps.GeoApiContext;
 import com.google.maps.android.PolyUtil;
@@ -145,7 +132,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -266,8 +252,7 @@ public class Maps_Full_Access extends Fragment implements LocationListener {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.maps_full_access, container, false);
-        return v;
+        return inflater.inflate(R.layout.maps_full_access, container, false);
     }
 
     @SuppressLint("MissingPermission")
@@ -286,7 +271,6 @@ public class Maps_Full_Access extends Fragment implements LocationListener {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        Log.e("created", "full access");
         following_route = getView().findViewById(R.id.following_route);
         progressDialog = new ProgressDialog(getContext());
         favourites = new ArrayList<Map<String, String>>();
@@ -428,7 +412,6 @@ public class Maps_Full_Access extends Fragment implements LocationListener {
                         .addOnFailureListener(new OnFailureListener() {
                             @Override
                             public void onFailure(@NonNull Exception e) {
-                                Log.e("failed", "its null");
                             }
                         });
             }
@@ -880,7 +863,7 @@ public class Maps_Full_Access extends Fragment implements LocationListener {
                     NearMeHolder.maps_flipper.showNext();
                     break;
                 case R.id.nearbystations:
-                    bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_EXPANDED);
+                    bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
                     ShowNearestStations();
                     break;
             }
@@ -991,8 +974,11 @@ public class Maps_Full_Access extends Fragment implements LocationListener {
                         nearbyCardView.setVisibility(View.VISIBLE);
                         break;
                     case BottomSheetBehavior.STATE_HALF_EXPANDED:
+                        nearbyCardView.setVisibility(View.INVISIBLE);
+                        break;
                     case BottomSheetBehavior.STATE_EXPANDED:
                         nearbyCardView.setVisibility(View.INVISIBLE);
+                        bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
                         break;
                     case BottomSheetBehavior.STATE_COLLAPSED:
                         bottomSheetBehavior_NearBy.setState(BottomSheetBehavior.STATE_HIDDEN);
@@ -2059,28 +2045,47 @@ public class Maps_Full_Access extends Fragment implements LocationListener {
                             .visible(false)
                             .title(uid));
                     ShowNearestStations();
-                    Log.e("user marker", "set");
                     gMap.animateCamera(CameraUpdateFactory
                             .newLatLngZoom(userMarker.getPosition(), 13.0f));
                 }
             }
             else if (role.equals("Driver")) {
                 if (gMap != null) {
-                    Bus_DriverUpdates updates = HomeFragment_Driver.updates;
-                    if (updates.bus_name != null) {
-                        driverRef = FirebaseDatabase.getInstance().getReference("tracking").child(updates.type).child(updates.bus_name);
-                        HomeFragment_Driver.send_bus_location(location, updates.bus_name, driverRef);
-                        driverGeoFire.setLocation(updates.bus_name, new GeoLocation(
-                                location.getLatitude(),
-                                location.getLongitude()), (key, error) -> {
-                            if (driverMarker != null) driverMarker.remove();
+                    Bus_DriverUpdates bus_updates = HomeFragment_Driver.bus_updates;
+                    LRV_DriverUpdates lrv_updates = HomeFragment_Driver.lrv_updates;
+                    if (bus_updates.bus_name != null) {
+                        if (bus_updates.tracking) {
+                            driverRef = FirebaseDatabase.getInstance().getReference("tracking").child(bus_updates.type).child(bus_updates.bus_name);
+                            HomeFragment_Driver.send_bus_location(location, bus_updates.bus_name, driverRef);
+                            driverGeoFire.setLocation(bus_updates.bus_name, new GeoLocation(
+                                    location.getLatitude(),
+                                    location.getLongitude()), (key, error) -> {
+                                if (driverMarker != null) driverMarker.remove();
 
-                            driverMarker = gMap.addMarker(new MarkerOptions()
-                                    .position(new LatLng(location.getLatitude(),
-                                            location.getLongitude()))
-                                    .visible(true)
-                                    .title(updates.bus_name));
-                        });
+                                driverMarker = gMap.addMarker(new MarkerOptions()
+                                        .position(new LatLng(location.getLatitude(),
+                                                location.getLongitude()))
+                                        .visible(true)
+                                        .title(bus_updates.bus_name));
+                            });
+                        }
+                    }
+                    else if (lrv_updates.lrv_name != null) {
+                        if (lrv_updates.tracking) {
+                            driverRef = FirebaseDatabase.getInstance().getReference("tracking").child(lrv_updates.type).child(lrv_updates.lrv_name);
+                            HomeFragment_Driver.send_lrv_location(location, lrv_updates.lrv_name, driverRef);
+                            driverGeoFire.setLocation(lrv_updates.lrv_name, new GeoLocation(
+                                    location.getLatitude(),
+                                    location.getLongitude()), (key, error) -> {
+                                if (driverMarker != null) driverMarker.remove();
+
+                                driverMarker = gMap.addMarker(new MarkerOptions()
+                                        .position(new LatLng(location.getLatitude(),
+                                                location.getLongitude()))
+                                        .visible(true)
+                                        .title(lrv_updates.lrv_name));
+                            });
+                        }
                     }
                 }
             }
@@ -2106,16 +2111,5 @@ public class Maps_Full_Access extends Fragment implements LocationListener {
     public void onDestroy() {
         super.onDestroy();
         preferences.unregisterOnSharedPreferenceChangeListener(listener);
-    }
-
-    @SuppressLint("NewApi")
-    private void tester () {
-//        for (Bus bus: allBuses) {
-//            for (Station station_bus: bus.getStops()) {}
-//                Log.e(String.valueOf(bus.getName()), station_bus.name + " at " + station_bus.getPosition());
-//        }
-        Station qb = new QB().addStation();
-        Station pl = new Victoria().addStation();
-
     }
 }

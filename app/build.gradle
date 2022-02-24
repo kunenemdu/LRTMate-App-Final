@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId "com.example.fypmetroapp"
         minSdkVersion 19
-        targetSdkVersion 30
+        targetSdkVersion 29
         multiDexEnabled true
         versionCode 1
         versionName '1.0-Beta'
@@ -52,6 +52,7 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.preference:preference:1.1.1'
     compile 'com.elmargomez.typer:typerlib:1.0.0'
     implementation 'com.github.mancj:MaterialSearchBar:0.8.5'
     implementation("com.tomtom.online:sdk-routing:2.4807")
