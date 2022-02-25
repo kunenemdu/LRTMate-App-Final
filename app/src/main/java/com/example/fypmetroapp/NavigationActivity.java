@@ -35,7 +35,7 @@ import androidx.fragment.app.FragmentManager;
 
 public class NavigationActivity extends AppCompatActivity {
 
-    final Fragment settings = new SettingsActivity.SettingsFragment();
+    final Fragment settings = new UserHome();
 
     static FragmentManager fm;
     static Fragment active;
